@@ -146,7 +146,10 @@ class Bird:
                 start_time, start_bright = active_pattern[i]
                 end_time, end_bright = active_pattern[i+1]
                 if start_time <= self.chirp_playback_time < end_time:
-                    progress = (self.chirp_playback_time - start_time) / (et - st) if (et - st) != 0 else 0
+                    # Original code might have an error here.
+                    # This ensures it doesn't divide by zero if start and end times are identical.
+                    time_delta = end_time - start_time
+                    progress = (self.chirp_playback_time - start_time) / time_delta if time_delta > 0 else 0
                     self.current_brightness = start_bright + (end_bright - start_bright) * progress
                     break
             
