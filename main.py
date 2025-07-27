@@ -1,3 +1,6 @@
+### シミュレーションのみ。
+### シリアル通信するのはmain2.py
+
 import pygame
 import csv
 import numpy as np
