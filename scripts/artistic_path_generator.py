@@ -213,11 +213,15 @@ class InteractivePathEditor:
             print("Adjustment complete. Final path rendered.")
             self.update_display()
             
-            with open('led_positions.csv', 'w', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(['x', 'y'])
-                writer.writerows(self.path_vertices)
-            print(f"Path with {len(self.path_vertices)} points saved to 'final_led_positions.csv'")
+        from src.config import LED_FILE_PATH
+        
+        with open(LED_FILE_PATH, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['x', 'y'])
+            writer.writerows(self.path_vertices)
+        print(f"Path with {len(self.path_vertices)} points saved to '{LED_FILE_PATH}'")
+
+editor = InteractivePathEditor()
 
 if __name__ == "__main__":
     print("Starting Interactive Path Builder...")
