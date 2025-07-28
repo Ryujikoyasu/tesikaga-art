@@ -23,6 +23,7 @@ IDLE_DURATION_RANGE_FRAMES = (180, 400)
 FORAGING_DURATION_RANGE_FRAMES = (120, 300)
 EXPLORE_DISTANCE_RANGE_METERS = (1.5, 4.0)
 HUMAN_STILLNESS_THRESHOLD_FRAMES = 180
+CHIRP_PROBABILITY_PER_FRAME = 0.003 ### 鳴く頻度を調整
 
 # --- Bird Personality Parameters (with auto-generated sync patterns) ---
 BIRD_PARAMS = {   'benimashiko': {   'accent_color': [139, 69, 19],

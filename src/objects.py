@@ -3,6 +3,7 @@ import numpy as np
 import random
 import os
 from .config import *
+from .config import CHIRP_PROBABILITY_PER_FRAME
 
 class Human:
     """
@@ -160,7 +161,7 @@ class Bird:
 
         # --- 3. Spontaneous Actions ---
         # Decide if the bird should start a special action (like chirping)
-        if self.state in ["IDLE", "FORAGING"] and self.action_timer > 0 and random.random() < 0.001:
+        if self.state in ["IDLE", "FORAGING"] and self.action_timer > 0 and random.random() < CHIRP_PROBABILITY_PER_FRAME:
             # Determine which action to perform
             # For Kumagera, the special action is drumming. For others, it's the default sound.
             self.active_pattern_key = 'drumming' if self.id == 'kumagera' else 'default'
