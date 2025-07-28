@@ -36,14 +36,20 @@ class Bird:
         # Load visual and physical parameters
         self.led_color = np.array(self.params['led_color'])
         self.accent_color = np.array(self.params['accent_color'])
-        self.color_ratio = self.params['color_ratio']
+        
+        # --- THIS IS THE FIX ---
+        # REMOVED: self.color_ratio = self.params['color_ratio']
+        # ADDED the new structural parameters:
+        self.base_led_count = self.params['base_led_count']
+        self.color_structure = self.params['color_structure']
+        # --- END OF FIX ---
+
         self.speed = self.params['movement_speed'] / 60.0 # Convert m/s to m/frame
         self.approach_speed = self.params['approach_speed'] / 60.0
         self.curiosity = self.params['curiosity']
         self.caution_distance = self.params['caution_distance']
         self.flee_distance = self.params['flee_distance']
         
-        # NEW: Now correctly expects a dictionary of named patterns
         self.chirp_patterns = self.params.get('chirp_pattern', {})
 
         # Initialize state and position
@@ -57,7 +63,7 @@ class Bird:
         # Playback tracking
         self.chirp_playback_time = 0.0
         self.current_brightness = 0.0
-        self.active_pattern_key = None # Tracks which pattern ('default', 'drumming') is playing
+        self.active_pattern_key = None 
 
         # Load all associated sound files
         self.sounds = {}

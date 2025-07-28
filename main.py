@@ -22,36 +22,77 @@ def view_to_model(pos_px):
     view_center = np.array([VIEW_WIDTH / 2, VIEW_HEIGHT / 2])
     return (np.array(pos_px) - view_center) / scale
 
+# ==============================================================================
+# ▼▼▼ THIS IS THE ONLY FUNCTION THAT IS MODIFIED ▼▼▼
+# ==============================================================================
+
 def calculate_bird_light(bird, center_idx, num_leds):
-    """Calculates the light contribution of a single bird as an array of RGB values."""
-    light_array = np.zeros((num_leds, 3), dtype=float)
-    spread, brightness = 0, 0.0
+    """
+    Calculates the light contribution of a single bird based on its defined color structure.
+    Returns: (light_color_array, light_brightness_array)
+    """
+    light_colors = np.zeros((num_leds, 3), dtype=float)
+    light_brightness = np.zeros(num_leds, dtype=float)
+
+    # 1. Determine the spread (number of LEDs to light) and brightness based on state
+    base_spread = bird.params['base_led_count'] // 2
+    brightness_factor = 0.0
+    dynamic_spread_factor = 1.0
 
     if bird.state == "CHIRPING":
-        brightness, spread = bird.current_brightness, int(bird.params['size'] * 4)
-    elif bird.state == "FORAGING":
-        spread, brightness = int(bird.params['size'] * 0.8), 0.4
-    else:
-        if bird.state == "IDLE": spread, brightness = int(bird.params['size'] * 0.5), 0.3
-        elif bird.state == "EXPLORING": spread, brightness = int(bird.params['size'] * 2), 0.6
-        elif bird.state == "CAUTION": spread, brightness = int(bird.params['size'] * 1.5), 0.7
-        elif bird.state == "FLEEING": spread, brightness = int(bird.params['size'] * 3), 1.0
-        elif bird.state == "CURIOUS": spread, brightness = int(bird.params['size'] * 1.0), 0.5
-    
-    spread = int(spread * LED_SPREAD_MULTIPLIER)
-    if spread == 0 or brightness <= 0: return light_array
+        brightness_factor = bird.current_brightness
+        dynamic_spread_factor = 1.0 + (bird.params['size'] / 2.0) # Chirping makes the light much larger
+    elif bird.state == "FLEEING":
+        brightness_factor = 1.0
+        dynamic_spread_factor = 1.2 # Fleeing makes light slightly larger
+    elif bird.state == "CAUTION":
+        brightness_factor = 0.7
+        dynamic_spread_factor = 1.0
+    elif bird.state == "CURIOUS":
+        brightness_factor = 0.5
+        dynamic_spread_factor = 0.9 # Curious is a bit smaller
+    else: # IDLE, EXPLORING, FORAGING
+        brightness_factor = 0.6
+        dynamic_spread_factor = 1.0
 
-    total_leds_in_spread = spread * 2 + 1; ratio_sum = sum(bird.color_ratio)
-    if ratio_sum == 0: ratio_sum = 1
-    num_accent_leds = int(total_leds_in_spread * (bird.color_ratio[1] / ratio_sum)); accent_spread = num_accent_leds // 2
+    # Final spread is the base count scaled by the dynamic factor
+    spread = int(base_spread * dynamic_spread_factor)
+    spread = int(spread * LED_SPREAD_MULTIPLIER) # Apply global multiplier
     
+    if spread == 0 or brightness_factor <= 0:
+        return light_colors, light_brightness
+
+    # 2. Get the bird's specific color structure
+    structure = bird.params['color_structure']
+    num_accent = structure.get('accent', 0)
+    
+    # The accent color will be placed in the very center of the light spread
+    accent_spread = num_accent // 2
+
+    # 3. Apply colors and brightness to the LED arrays
     for i in range(-spread, spread + 1):
         idx = center_idx + i
         if 0 <= idx < num_leds:
-            falloff = (spread - abs(i)) / spread; final_brightness = brightness * falloff
-            color_to_use = bird.accent_color if -accent_spread <= i <= accent_spread else bird.led_color
-            light_array[idx] += color_to_use * final_brightness
-    return light_array
+            falloff = (spread - abs(i)) / spread if spread > 0 else 1.0
+            final_brightness = brightness_factor * falloff
+
+            # Determine color based on the physical structure
+            # The innermost LEDs get the accent color
+            if -accent_spread <= i <= accent_spread:
+                color_to_use = bird.accent_color
+            else:
+                color_to_use = bird.led_color
+            
+            # Store the final calculated values
+            light_colors[idx] = color_to_use * final_brightness
+            light_brightness[idx] = final_brightness
+            
+    return light_colors, light_brightness
+
+# ==============================================================================
+# ▲▲▲ END OF MODIFIED SECTION ▲▲▲
+# ==============================================================================
+
 
 def main():
     pygame.init(); pygame.mixer.init()
@@ -101,11 +142,20 @@ def main():
         human_pos_px = model_to_view(human.position)
         pygame.draw.circle(debug_surface, (255, 255, 255), (int(human_pos_px[0]), int(human_pos_px[1])), 10)
         
+        # This "Winner-Takes-All" logic remains unchanged and works with the new light calculation
         led_color_array = np.zeros((num_leds, 3), dtype=float)
+        led_brightness_buffer = np.zeros(num_leds, dtype=float)
+
         for bird in birds:
             distances_m = np.linalg.norm(led_model_positions - bird.position, axis=1)
             center_led_index = np.argmin(distances_m)
-            led_color_array += calculate_bird_light(bird, center_led_index, num_leds)
+            
+            # The new function is called here, but the surrounding logic doesn't need to change
+            bird_light_colors, bird_light_brightness = calculate_bird_light(bird, center_led_index, num_leds)
+            
+            update_mask = bird_light_brightness > led_brightness_buffer
+            led_color_array[update_mask] = bird_light_colors[update_mask]
+            led_brightness_buffer[update_mask] = bird_light_brightness[update_mask]
         
         final_led_colors = np.clip(led_color_array, 0, 255).astype(int)
         for i, pos_px in enumerate(led_view_positions):
