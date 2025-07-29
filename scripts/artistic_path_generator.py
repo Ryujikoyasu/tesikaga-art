@@ -3,55 +3,62 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import time
 import csv
-
-# --- Parameters ---
-POND_DIAMETER = 5.0
-POND_RADIUS = POND_DIAMETER / 2.0
-TOTAL_LENGTH = 15.0
-LEDS_PER_METER = 60
-TOTAL_POINTS = int(TOTAL_LENGTH * LEDS_PER_METER)
-
-SEGMENT_POINTS_BASE = TOTAL_POINTS // 3
-REMAINDER_POINTS = TOTAL_POINTS % 3
-SEGMENT_POINTS_LIST = [
-    SEGMENT_POINTS_BASE + (1 if i < REMAINDER_POINTS else 0) for i in range(3)
-]
-SEGMENT_LENGTH = TOTAL_LENGTH / 3.0
+from src.config import LED_FILE_PATH
 
 class InteractivePathEditor:
-    # ... (The __init__, setup_plot, connect_events, create_initial_path, update_display, get_segment_length,
-    #      on_press, on_motion, on_release, on_scroll methods are ALL THE SAME as your last working version.
-    #      They are omitted here for brevity but should be included in your file.)
-    def __init__(self):
+    def __init__(self, num_segments=3):
+        # --- Core Parameters ---
+        self.num_segments = num_segments
+        # User must place N+1 points to define N segments
+        self.num_total_anchors = self.num_segments + 1
+
+        # --- Constants ---
+        self.POND_DIAMETER = 5.0
+        self.POND_RADIUS = self.POND_DIAMETER / 2.0
+        self.SEGMENT_LENGTH = 5.0
+        self.LEDS_PER_METER = 60
+        self.TOTAL_LENGTH = self.num_segments * self.SEGMENT_LENGTH
+        self.TOTAL_POINTS = int(self.TOTAL_LENGTH * self.LEDS_PER_METER)
+
+        # --- Distribute points evenly among segments ---
+        segment_points_base = self.TOTAL_POINTS // self.num_segments
+        remainder_points = self.TOTAL_POINTS % self.num_segments
+        self.segment_points_list = [
+            segment_points_base + (1 if i < remainder_points else 0) for i in range(self.num_segments)
+        ]
+
+        # --- State Initialization ---
         self.fig, self.ax = plt.subplots(figsize=(11, 10))
         plt.subplots_adjust(right=0.75, top=0.95)
         self.pond_center = np.array([0.0, 0.0])
         self.state = "PLACING_ANCHORS"
         self.pull_radius_factor = 0.1
-        self.anchor_positions = [
-            self.pond_center + np.array([0, POND_RADIUS]),
-            self.pond_center + np.array([-POND_RADIUS * np.sin(2*np.pi/3), -POND_RADIUS * np.cos(2*np.pi/3)]),
-            self.pond_center + np.array([POND_RADIUS * np.sin(2*np.pi/3), -POND_RADIUS * np.cos(2*np.pi/3)])
-        ]
+
+        # --- Anchor and Path Data ---
+        self.anchor_positions = [np.zeros(2) for _ in range(self.num_total_anchors)]
         self.placed_anchor_count = 0
-        self.path_vertices = np.zeros((TOTAL_POINTS, 2))
+        self.path_vertices = np.zeros((self.TOTAL_POINTS, 2))
+        self.anchor_indices = []
+
+        # --- UI State ---
         self.is_dragging = False
         self.drag_info = {}
+
+        # --- Setup ---
         self.setup_plot()
         self.connect_events()
-        self.create_initial_path()
         self.update_display()
         plt.show()
 
     def setup_plot(self):
         self.ax.set_aspect('equal', adjustable='box')
-        self.ax.set_xlim(-POND_RADIUS - 1, POND_RADIUS + 1)
-        self.ax.set_ylim(-POND_RADIUS - 1, POND_RADIUS + 1)
-        self.pond = Circle(self.pond_center, POND_RADIUS, facecolor='lightblue', edgecolor='blue', alpha=0.5, zorder=0)
+        self.ax.set_xlim(-self.POND_RADIUS - 1, self.POND_RADIUS + 1)
+        self.ax.set_ylim(-self.POND_RADIUS - 1, self.POND_RADIUS + 1)
+        self.pond = Circle(self.pond_center, self.POND_RADIUS, facecolor='lightblue', edgecolor='blue', alpha=0.5, zorder=0)
         self.ax.add_patch(self.pond)
         self.line_artist, = self.ax.plot([], [], color='purple', linewidth=2.5, zorder=1)
         self.anchor_artist = self.ax.scatter([], [], color='black', s=120, zorder=5)
-        self.info_text = self.fig.text(0.77, 0.9, '', fontsize=10, verticalalignment='top', fontfamily='monospace')
+        self.info_text = self.fig.text(0.77, 0.9, '', fontsize=9, verticalalignment='top', fontfamily='monospace')
         self.brush_indicator = Circle((0,0), 0.1, facecolor='red', alpha=0.3, zorder=10, visible=False)
         self.ax.add_patch(self.brush_indicator)
 
@@ -63,71 +70,138 @@ class InteractivePathEditor:
         self.fig.canvas.mpl_connect('scroll_event', self.on_scroll)
 
     def create_initial_path(self):
-        p0_idx, p1_idx, p2_idx = 0, SEGMENT_POINTS_LIST[0], SEGMENT_POINTS_LIST[0] + SEGMENT_POINTS_LIST[1]
-        p0, p1, p2 = self.anchor_positions
-        seg1 = np.linspace(p0, p1, SEGMENT_POINTS_LIST[0])
-        seg2 = np.linspace(p1, p2, SEGMENT_POINTS_LIST[1])
-        seg3 = np.linspace(p2, self.pond_center, SEGMENT_POINTS_LIST[2])
-        self.path_vertices = np.vstack([seg1, seg2, seg3])
+        """Generates the initial straight-line path between all anchor points."""
+        segments = []
+        for i in range(self.num_segments):
+            p_start = self.anchor_positions[i]
+            p_end = self.anchor_positions[i+1]
+            num_points = self.segment_points_list[i]
+            segments.append(np.linspace(p_start, p_end, max(2, num_points)))
+        
+        self.path_vertices = np.vstack(segments)
+        
+        self.anchor_indices = list(np.cumsum([0] + self.segment_points_list[:-1]))
+        self.anchor_indices.append(self.TOTAL_POINTS - 1)
 
     def update_display(self):
-        if self.state == "DONE": self.line_artist.set_color('lime')
-        else: self.line_artist.set_color('purple')
-        self.line_artist.set_data(self.path_vertices[:, 0], self.path_vertices[:, 1])
-        anchor_indices = [0, SEGMENT_POINTS_LIST[0], SEGMENT_POINTS_LIST[0] + SEGMENT_POINTS_LIST[1]]
-        self.anchor_artist.set_offsets(self.path_vertices[anchor_indices])
+        """Updates all visual elements in the plot."""
+        if self.state == "DONE":
+            self.line_artist.set_color('lime')
+        else:
+            self.line_artist.set_color('purple')
+
+        if self.path_vertices.ndim == 2 and self.path_vertices.shape[0] > 1:
+            self.line_artist.set_data(self.path_vertices[:, 0], self.path_vertices[:, 1])
+
+        if self.anchor_indices:
+            anchor_coords = self.path_vertices[self.anchor_indices]
+            self.anchor_artist.set_offsets(anchor_coords)
+        else:
+            if self.placed_anchor_count > 0:
+                offsets = np.array(self.anchor_positions[:self.placed_anchor_count])
+                self.anchor_artist.set_offsets(offsets)
+            else:
+                self.anchor_artist.set_offsets(np.empty((0, 2)))
+
+        # --- Generate dynamic instructions for placing anchors ---
+        placing_instruction = ""
+        if self.state == "PLACING_ANCHORS":
+            # The first N points (0 to N-1) go on the edge
+            if self.placed_anchor_count < self.num_segments:
+                placing_instruction = f"Click {self.num_segments - self.placed_anchor_count} more point(s) ON THE EDGE."
+            else: # The last point (N+1)
+                placing_instruction = "Click the final anchor point.\n(Can be inside the pond)."
+        
         state_titles = {
-            "PLACING_ANCHORS": "Click 3 points ON THE EDGE.",
+            "PLACING_ANCHORS": placing_instruction,
             "EDITING_PATH": "Drag path to shape.\nSCROLL to change brush size.\nPress 'S' to save.",
+            "ADJUSTING": "Finalizing path, please wait...",
             "DONE": "SAVED! Final path rendered.\nClose the window."
         }
-        s1, s2, s3 = self.get_segment_length(0), self.get_segment_length(1), self.get_segment_length(2)
+        
+        s_lengths = [self.get_segment_length(i) for i in range(self.num_segments)]
+        total_len = sum(s_lengths)
+        
+        length_info_lines = [f"Segment {i+1}: {s_lengths[i]:6.4f}m" for i in range(self.num_segments)]
+        length_info = "\n".join(length_info_lines)
+
         info = (f"STATE: {self.state}\n\n"
                 f"INSTRUCTIONS:\n{state_titles.get(self.state, '')}\n\n"
                 f"BRUSH SIZE: {self.pull_radius_factor*100:.1f}%\n\n"
-                f"--- LENGTHS (TARGET: {SEGMENT_LENGTH:.2f}m) ---\n"
-                f"Segment 1: {s1:6.4f}m\n"
-                f"Segment 2: {s2:6.4f}m\n"
-                f"Segment 3: {s3:6.4f}m\n\n"
-                f"TOTAL:     {s1+s2+s3:.4f}m")
+                f"--- LENGTHS (TARGET: {self.SEGMENT_LENGTH:.2f}m) ---\n"
+                f"{length_info}\n"
+                f"-------------------------------------\n"
+                f"TOTAL:     {total_len:.4f}m")
         self.info_text.set_text(info)
         self.fig.canvas.draw_idle()
 
     def get_segment_length(self, seg_idx):
-        start = sum(SEGMENT_POINTS_LIST[:seg_idx])
-        end = sum(SEGMENT_POINTS_LIST[:seg_idx+1])
-        points = self.path_vertices[start:end]
+        """Calculates the geometric length of a single path segment."""
+        if self.state == "PLACING_ANCHORS": return 0.0
+        
+        start_idx = sum(self.segment_points_list[:seg_idx])
+        end_idx = start_idx + self.segment_points_list[seg_idx]
+        points = self.path_vertices[start_idx:end_idx]
+        
         if len(points) < 2: return 0.0
         return np.sum(np.linalg.norm(np.diff(points, axis=0), axis=1))
 
     def on_press(self, event):
         if event.inaxes != self.ax or self.state == "DONE": return
-        pos = np.array([event.xdata, event.ydata])
+        
         if self.state == "PLACING_ANCHORS":
-            if self.placed_anchor_count < 3:
-                vec = pos - self.pond_center
-                self.anchor_positions[self.placed_anchor_count] = self.pond_center + (vec / np.linalg.norm(vec)) * POND_RADIUS
+            if self.placed_anchor_count < self.num_total_anchors:
+                pos = np.array([event.xdata, event.ydata])
+                
+                # The last anchor point (index N) is not snapped to the edge.
+                is_last_anchor = (self.placed_anchor_count == self.num_segments)
+
+                if not is_last_anchor:
+                    # Snap the clicked point to the edge of the pond
+                    vec = pos - self.pond_center
+                    norm_vec = np.linalg.norm(vec)
+                    if norm_vec > 1e-6:
+                        self.anchor_positions[self.placed_anchor_count] = self.pond_center + (vec / norm_vec) * self.POND_RADIUS
+                    else: # Default to a point on top if center is clicked
+                        self.anchor_positions[self.placed_anchor_count] = self.pond_center + np.array([0, self.POND_RADIUS])
+                else:
+                    # For the last anchor, just use the clicked position
+                    self.anchor_positions[self.placed_anchor_count] = pos
+                
                 self.placed_anchor_count += 1
-            if self.placed_anchor_count == 3:
+
+            # If all N+1 anchors are placed, start the editing phase
+            if self.placed_anchor_count == self.num_total_anchors:
+                print("All anchors placed. Entering editing mode.")
                 self.state = "EDITING_PATH"
                 self.create_initial_path()
+            
             self.update_display()
+
         elif self.state == "EDITING_PATH":
+            pos = np.array([event.xdata, event.ydata])
             self.is_dragging = True
             self.drag_info = {'pos': pos}
             self.brush_indicator.set_visible(True)
+            self.on_motion(event)
 
     def on_motion(self, event):
         if not self.is_dragging or not event.inaxes: return
+        
         pos = np.array([event.xdata, event.ydata])
-        brush_radius = self.pull_radius_factor * POND_RADIUS
-        self.brush_indicator.set_center((pos[0], pos[1])); self.brush_indicator.set_radius(brush_radius)
+        brush_radius = self.pull_radius_factor * self.POND_RADIUS
+        self.brush_indicator.set_center((pos[0], pos[1]))
+        self.brush_indicator.set_radius(brush_radius)
+        
         displacement = pos - self.drag_info['pos']
         distances = np.linalg.norm(self.path_vertices - pos, axis=1)
-        sigma = POND_RADIUS * self.pull_radius_factor
+        
+        sigma = self.POND_RADIUS * self.pull_radius_factor
         pull_strength = np.exp(-(distances**2) / (2 * sigma**2))
-        anchor_indices = [0, SEGMENT_POINTS_LIST[0], SEGMENT_POINTS_LIST[0] + SEGMENT_POINTS_LIST[1]]
-        pull_strength[anchor_indices] = 0.0
+        
+        if self.anchor_indices:
+            pull_strength[self.anchor_indices] = 0.0
+            
         self.path_vertices += displacement * pull_strength[:, np.newaxis]
         self.drag_info['pos'] = pos
         self.update_display()
@@ -136,46 +210,47 @@ class InteractivePathEditor:
         if self.is_dragging:
             self.is_dragging = False
             self.brush_indicator.set_visible(False)
+            
             distances_from_center = np.linalg.norm(self.path_vertices - self.pond_center, axis=1)
-            outside_mask = distances_from_center > POND_RADIUS
+            outside_mask = distances_from_center > self.POND_RADIUS
+            
             if np.any(outside_mask):
                 vecs_to_center = self.pond_center - self.path_vertices[outside_mask]
-                self.path_vertices[outside_mask] += vecs_to_center * (1 - POND_RADIUS / distances_from_center[outside_mask])[:, np.newaxis]
+                self.path_vertices[outside_mask] += vecs_to_center * \
+                    (1 - self.POND_RADIUS / distances_from_center[outside_mask])[:, np.newaxis]
+            
             self.update_display()
 
     def on_scroll(self, event):
         if self.state != "EDITING_PATH": return
-        if event.button == 'up': self.pull_radius_factor *= 1.2
-        elif event.button == 'down': self.pull_radius_factor /= 1.2
+        if event.button == 'up':
+            self.pull_radius_factor *= 1.2
+        elif event.button == 'down':
+            self.pull_radius_factor /= 1.2
         self.pull_radius_factor = np.clip(self.pull_radius_factor, 0.02, 0.5)
         self.update_display()
 
     def high_precision_resample(self, points, target_num_points, target_length):
         """
-        The definitive, high-precision resampling function.
-        It preserves the shape while exactly scaling the length.
+        Resamples a sequence of points to a specific length and number of points,
+        while preserving its geometric shape.
         """
-        # 1. Calculate the exact cumulative length along the current user-drawn shape
         segment_vectors = np.diff(points, axis=0)
         segment_lengths = np.linalg.norm(segment_vectors, axis=1)
         cumulative_lengths = np.insert(np.cumsum(segment_lengths), 0, 0)
         
-        # If the path has no length, return a straight line of points
-        if cumulative_lengths[-1] < 1e-9:
+        current_total_length = cumulative_lengths[-1]
+        
+        if current_total_length < 1e-9:
             return np.linspace(points[0], points[-1], target_num_points)
         
-        # 2. Create a set of distances for the new, perfectly-spaced points
-        ideal_distances = np.linspace(0, cumulative_lengths[-1], target_num_points)
+        ideal_distances = np.linspace(0, current_total_length, target_num_points)
         
-        # 3. Interpolate the original points to find the new, evenly-spaced points
-        #    This step ensures we have a high-quality representation of the shape.
         interp_x = np.interp(ideal_distances, cumulative_lengths, points[:, 0])
         interp_y = np.interp(ideal_distances, cumulative_lengths, points[:, 1])
         resampled_points = np.vstack([interp_x, interp_y]).T
 
-        # 4. The resampled path has the correct shape but wrong total length.
-        #    Now, we simply scale all vectors from the start point by the required factor.
-        scale_factor = target_length / cumulative_lengths[-1]
+        scale_factor = target_length / current_total_length
         start_point = resampled_points[0]
         scaled_points = start_point + (resampled_points - start_point) * scale_factor
         
@@ -186,43 +261,55 @@ class InteractivePathEditor:
             print("Performing final high-precision adjustment...")
             self.state = "ADJUSTING"
             self.update_display()
+            self.fig.canvas.flush_events()
             time.sleep(0.1)
 
-            p0_idx = 0
-            p1_idx = SEGMENT_POINTS_LIST[0]
-            p2_idx = p1_idx + SEGMENT_POINTS_LIST[1]
+            perfect_segments = []
+            current_start_idx = 0
             
-            # Extract the correct segments
-            seg1_shape = self.path_vertices[p0_idx : p1_idx]
-            seg2_shape = self.path_vertices[p1_idx : p2_idx]
-            seg3_shape = self.path_vertices[p2_idx:]
-            
-            # Resample each segment with the correct number of points and target length
-            seg1_perfect = self.high_precision_resample(seg1_shape, SEGMENT_POINTS_LIST[0], SEGMENT_LENGTH)
-            seg2_perfect = self.high_precision_resample(seg2_shape, SEGMENT_POINTS_LIST[1], SEGMENT_LENGTH)
-            seg3_perfect = self.high_precision_resample(seg3_shape, SEGMENT_POINTS_LIST[2], SEGMENT_LENGTH)
-            
-            # Stitch them together
-            self.path_vertices = np.vstack([
-                seg1_perfect,
-                seg2_perfect,
-                seg3_perfect
-            ])
+            for i in range(self.num_segments):
+                num_points = self.segment_points_list[i]
+                current_end_idx = current_start_idx + num_points
+                
+                segment_shape = self.path_vertices[current_start_idx:current_end_idx]
+                
+                segment_perfect = self.high_precision_resample(
+                    segment_shape, num_points, self.SEGMENT_LENGTH
+                )
+                perfect_segments.append(segment_perfect)
+                
+                current_start_idx = current_end_idx
+
+            self.path_vertices = np.vstack(perfect_segments)
             
             self.state = "DONE"
             print("Adjustment complete. Final path rendered.")
+            self.anchor_indices = list(np.cumsum([0] + self.segment_points_list[:-1]))
+            self.anchor_indices.append(self.TOTAL_POINTS - 1)
             self.update_display()
             
-        from src.config import LED_FILE_PATH
-        
-        with open(LED_FILE_PATH, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(['x', 'y'])
-            writer.writerows(self.path_vertices)
-        print(f"Path with {len(self.path_vertices)} points saved to '{LED_FILE_PATH}'")
-
-editor = InteractivePathEditor()
+            try:
+                with open(LED_FILE_PATH, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(['x', 'y'])
+                    writer.writerows(self.path_vertices)
+                print(f"Path with {len(self.path_vertices)} points saved to '{LED_FILE_PATH}'")
+            except Exception as e:
+                print(f"Error saving file: {e}")
 
 if __name__ == "__main__":
-    print("Starting Interactive Path Builder...")
-    editor = InteractivePathEditor()
+    # --- User Configuration ---
+    # Set the desired number of line segments.
+    NUM_SEGMENTS = 3  # <-- CHANGE THIS VALUE (e.g., 3, 4, 5, etc.)
+    # --------------------------
+
+    print("--- Interactive Path Builder ---")
+    print(f"You will define {NUM_SEGMENTS} segments by clicking {NUM_SEGMENTS + 1} anchor points.")
+    print(f"The first {NUM_SEGMENTS} points must be on the edge of the pond.")
+    print("The final point can be placed anywhere.")
+    
+    try:
+        editor = InteractivePathEditor(num_segments=NUM_SEGMENTS)
+    except Exception as e:
+        print(f"\nAn error occurred: {e}")
+        print("Please ensure you have a graphical environment and matplotlib is installed correctly.")

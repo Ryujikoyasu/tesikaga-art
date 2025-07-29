@@ -1,7 +1,7 @@
 #include <FastLED.h>
 
 // --- ハードウェア設定 (ご自身の環境に合わせて変更) ---
-#define NUM_LEDS         300  // 今回使用するLEDの数
+#define NUM_LEDS         100  // 今回使用するLEDの数
 #define DATA_PIN         13   // ESP32のデータ出力ピン (例: GPIO13)
 #define LED_TYPE         WS2812B // 一般的なLEDテープの型番
 #define COLOR_ORDER      GRB     // GRBまたはRGB。色が正しくなければここを変更
