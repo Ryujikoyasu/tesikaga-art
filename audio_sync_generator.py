@@ -93,13 +93,17 @@ MODEL_RADIUS = MODEL_DIAMETER / 2.0
 # --- File Paths ---
 LED_FILE_PATH = os.path.join(PROJECT_ROOT, "assets", "data", "led_positions.csv")
 
+# --- LED Strip Configuration ---
+NUM_LEDS = 900  # Total number of physical LEDs
+NUM_PIXELS = NUM_LEDS // 3 # Number of addressable pixels (for WS2811, 1 pixel = 3 LEDs)
+
 # --- AI & Visual Tuning ---
 LED_SPREAD_MULTIPLIER = 1.5
 IDLE_DURATION_RANGE_FRAMES = (180, 400)
 FORAGING_DURATION_RANGE_FRAMES = (120, 300)
 EXPLORE_DISTANCE_RANGE_METERS = (1.5, 4.0)
 HUMAN_STILLNESS_THRESHOLD_FRAMES = 180
-CHIRP_PROBABILITY_PER_FRAME = 0.001  # <<< THIS LINE IS THE FIX
+CHIRP_PROBABILITY_PER_FRAME = 0.001
 
 # --- Bird Personality Parameters (with auto-generated sync patterns) ---
 """

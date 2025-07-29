@@ -293,14 +293,15 @@ class InteractivePathEditor:
                     writer = csv.writer(csvfile)
                     writer.writerow(['x', 'y'])
                     writer.writerows(self.path_vertices)
-                print(f"Path with {len(self.path_vertices)} points saved to '{LED_FILE_PATH}'")
+                # Output file will be named based on the number of segments
+                output_file = os.path.join(output_dir, f"led_positions_{num_segments}_segments.csv")
             except Exception as e:
                 print(f"Error saving file: {e}")
 
 if __name__ == "__main__":
     # --- User Configuration ---
     # Set the desired number of line segments.
-    NUM_SEGMENTS = 3  # <-- CHANGE THIS VALUE (e.g., 3, 4, 5, etc.)
+    NUM_SEGMENTS = 4  # <-- CHANGE THIS VALUE (e.g., 3, 4, 5, etc.)
     # --------------------------
 
     print("--- Interactive Path Builder ---")

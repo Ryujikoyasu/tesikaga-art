@@ -34,15 +34,13 @@ class Bird:
         self.params = params
         
         # Load visual and physical parameters
-        self.led_color = np.array(self.params['led_color'])
+        self.base_color = np.array(self.params['base_color'])
         self.accent_color = np.array(self.params['accent_color'])
         
-        # --- THIS IS THE FIX ---
-        # REMOVED: self.color_ratio = self.params['color_ratio']
-        # ADDED the new structural parameters:
-        self.base_led_count = self.params['base_led_count']
-        self.color_structure = self.params['color_structure']
-        # --- END OF FIX ---
+        # Load new pixel-based light structure parameters
+        self.base_pixel_count = self.params['base_pixel_count']
+        self.color_pattern = self.params['color_pattern']
+        self.chirp_color_pattern = self.params.get('chirp_color_pattern', self.color_pattern)
 
         self.speed = self.params['movement_speed'] / 60.0 # Convert m/s to m/frame
         self.approach_speed = self.params['approach_speed'] / 60.0
@@ -73,6 +71,18 @@ class Bird:
                 self.sounds[key] = pygame.mixer.Sound(abs_path)
         except Exception as e:
             print(f"ERROR loading sound for bird {self.id} at '{abs_path}': {e}")
+
+    def get_current_light_pattern(self):
+        """Returns the light pattern and base pixel count based on the bird's current state."""
+        if self.state == "CHIRPING":
+            # During chirp, return the chirp pattern and a dynamically scaled pixel count
+            base_pixels = self.base_pixel_count
+            # Increase pixel count based on current_brightness and bird's size
+            dynamic_pixel_count = int(base_pixels * (1 + self.current_brightness * self.params['size'] * 0.5))
+            return self.chirp_color_pattern, dynamic_pixel_count
+        
+        # Otherwise, return the standard pattern and base pixel count
+        return self.color_pattern, self.base_pixel_count
 
     def _get_random_position(self):
         """Places the bird at a random point within the pond's radius."""

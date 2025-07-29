@@ -1,63 +1,59 @@
 #include <FastLED.h>
 
-// --- ハードウェア設定 (ご自身の環境に合わせて変更) ---
-#define NUM_LEDS         100  // 今回使用するLEDの数
-#define DATA_PIN         13   // ESP32のデータ出力ピン (例: GPIO13)
-#define LED_TYPE         WS2812B // 一般的なLEDテープの型番
-#define COLOR_ORDER      GRB     // GRBまたはRGB。色が正しくなければここを変更
+// --- Hardware Settings ---
+// Set to the absolute maximum number of LEDs you might ever connect.
+// This allows for flexible hardware configurations without reprogramming.
+#define NUM_LEDS         1500 // Max LEDs for 5 strips (300 pixels/strip * 5 strips)
+#define DATA_PIN         13   // Data output pin for ESP32
+#define LED_TYPE         WS2811
+#define COLOR_ORDER      GRB
 
-// --- 通信設定 ---
-#define BAUD_RATE        230400 // PCとの通信速度。高速でないとカクつきます
-#define SERIAL_TIMEOUT   100   // データ受信のタイムアウト(ミリ秒)
+// --- Communication Settings ---
+#define BAUD_RATE        115200 // Must match Python script
+#define SERIAL_TIMEOUT   100    // ms
 
-// --- 安全設定 (非常に重要！) ---
-#define MAX_BRIGHTNESS   60    // 最大の明るさ (0-255)。最初は低い値(30-60)で！
-                               // 300個のLEDをフルパワーで光らせると15A以上流れる可能性があります。
-                               // 必ず適切な電源を使用してください。
+// --- Safety Settings ---
+#define MAX_BRIGHTNESS   80     // 0-255. Be careful with power consumption!
 
-// FastLEDライブラリ用のLED配列を定義
 CRGB leds[NUM_LEDS];
 
-// フレームの開始を告げる「マジックバイト」
-const byte MAGIC_BYTE = 0xAB;
+const byte MAGIC_BYTE = 0x7E; // Must match Python script
 
 void setup() {
-  // シリアル通信を開始
   Serial.begin(BAUD_RATE);
   Serial.setTimeout(SERIAL_TIMEOUT);
 
-  // FastLEDを初期化
   FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-  
-  // 安全のための最大輝度設定
   FastLED.setBrightness(MAX_BRIGHTNESS);
 
-  // 起動時にテストパターンを点灯
-  for(int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = CRGB::Black;
-  }
-  FastLED.show();
-  delay(500);
-  for(int i = 0; i < 3; i++) {
-    leds[i] = CRGB::Red; leds[NUM_LEDS - 1 - i] = CRGB::Blue;
-  }
+  FastLED.clear();
   FastLED.show();
 }
 
 void loop() {
-  // 1. フレームの開始（マジックバイト）を待つ
-  if (Serial.available() > 0) {
-    if (Serial.read() == MAGIC_BYTE) {
-      
-      // 2. マジックバイトが来たら、LEDデータ(300個 * 3色 = 900バイト)を受信する
-      // readBytesは、指定したバイト数を読み込むか、タイムアウトするまで待機します。
-      size_t bytesRead = Serial.readBytes((char*)leds, NUM_LEDS * 3);
-      
-      // 3. 全てのデータを受信できたら、LEDを更新する
-      if (bytesRead == NUM_LEDS * 3) {
-        FastLED.show();
-      }
-      // データが足りない場合は、次のマジックバイトまで破棄して同期を取り直す
+  if (Serial.available() > 0 && Serial.read() == MAGIC_BYTE) {
+    // The number of pixels to read is determined by the incoming data stream.
+    // We expect NUM_PIXELS from the config, but the code is flexible.
+    // For WS2811, each CRGB color (3 bytes) will control 3 physical LEDs.
+    
+    // Calculate how many bytes (pixels) are available to read from the serial buffer.
+    int bytes_to_read = Serial.available();
+    int pixels_to_read = bytes_to_read / 3;
+
+    // Ensure we don't read more data than our buffer can hold.
+    if (pixels_to_read > NUM_LEDS) {
+        pixels_to_read = NUM_LEDS; 
     }
+
+    // Read the available color data directly into the leds array.
+    Serial.readBytes((char*)leds, pixels_to_read * 3);
+
+    // Clear the rest of the LED strip.
+    // This ensures that if a shorter signal is sent, old data is not displayed.
+    for (int i = pixels_to_read; i < NUM_LEDS; i++) {
+        leds[i] = CRGB::Black;
+    }
+
+    FastLED.show();
   }
 }
