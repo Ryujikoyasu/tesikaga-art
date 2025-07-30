@@ -34,7 +34,7 @@ test_strip_led_count: 900 # Number of LEDs on your physical test strip
 # --- AI & Visual Tuning ---
 # Fine-tuning parameters for bird behavior and simulation visuals.
 ai_tuning:
-  chirp_probability_per_frame: 0.001
+  chirp_probability_per_frame: 0.003
 
 # --- Simulation Cast ---
 # List of bird IDs to include in the simulation.

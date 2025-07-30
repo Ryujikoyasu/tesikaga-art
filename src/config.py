@@ -16,11 +16,11 @@ BIRD_PARAMS = {
                 240,
                 255
             ],
-            'base_pixel_count': 3,
+            'base_pixel_count': 4,
             'size': 1.0,
             'color_pattern': [
                 ['b', 1],
-                ['a', 1],
+                ['a', 2],
                 ['b', 1]
             ],
             'chirp_color_pattern': [
@@ -285,23 +285,24 @@ BIRD_PARAMS = {
         'kumagera': {
             'name_jp': 'クマゲラ',
             'base_color': [
-                20,
-                20,
-                30
+                35,
+                35,
+                50
             ],
             'accent_color': [
                 255,
                 0,
                 0
             ],
-            'base_pixel_count': 2,
+            'base_pixel_count': 3,
             'size': 1.5,
             'color_pattern': [
+                ['b', 1],
                 ['a', 1],
                 ['b', 1]
             ],
             'chirp_color_pattern': [
-                ['a', 2]
+                ['a', 3]
             ],
             'movement_speed': 0.3,
             'approach_speed': 0.1,
@@ -471,8 +472,8 @@ BIRD_PARAMS = {
         'nogoma': {
             'name_jp': 'ノゴマ',
             'base_color': [
-                130,
-                110,
+                140,
+                115,
                 90
             ],
             'accent_color': [
@@ -480,14 +481,15 @@ BIRD_PARAMS = {
                 10,
                 10
             ],
-            'base_pixel_count': 2,
+            'base_pixel_count': 3,
             'size': 0.8,
             'color_pattern': [
+                ['b', 1],
                 ['a', 1],
                 ['b', 1]
             ],
             'chirp_color_pattern': [
-                ['a', 2]
+                ['a', 3]
             ],
             'movement_speed': 0.4,
             'approach_speed': 0.2,
@@ -541,15 +543,16 @@ BIRD_PARAMS = {
                 150,
                 170
             ],
-            'base_pixel_count': 2,
+            'base_pixel_count': 3,
             'size': 0.9,
             'color_pattern': [
+                ['a', 1],
                 ['b', 1],
                 ['a', 1]
             ],
             'chirp_color_pattern': [
                 ['a', 1],
-                ['b', 1]
+                ['b', 2]
             ],
             'movement_speed': 0.35,
             'approach_speed': 0.15,
