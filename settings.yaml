@@ -3,30 +3,38 @@
 # * This is the primary file for configuring the simulation and hardware.
 # *******************************************************************
 
-
-# -- Hardware & Layout --
+# --- Hardware & Layout ---
 # Name of the LED position file in assets/data/
-led_layout_file: "led_positions_4_segments.csv"
+led_layout_file: "led_positions_3_segments.csv"
 
-# Total number of physical LEDs in the strip
-num_leds: 1200
+# Total number of physical LEDs in the full installation
+num_leds: 900
 
-# テスト時は、手元にあるLEDテープが少ない場合でも合わせることができる。NUM_LEDSの意味の混在を防ぐため。
-enable_test_mode: true
-test_strip_led_count: 100 # ここでテスト用テープのLED数を定義
-
-# Serial port for the Arduino/ESP32
-# (e.g., /dev/tty.usbmodemXXXX on Mac, COM3 on Windows)
+# Serial port for the Arduino
+# Mac: /dev/tty.usbmodemXXXX or /dev/tty.usbserial-XXXX
+# Linux: /dev/ttyACM0 or /dev/ttyUSB0
+# Windows: COM3
 serial_port: "/dev/tty.usbmodem1101"
-baud_rate: 115200
+baud_rate: 921600
 
-# -- Visual & Simulation Parameters --
+# --- Visual & Simulation Parameters ---
 # Screen dimensions for the simulation window
 view_width: 800
 view_height: 800
 
 # The diameter of the pond area in the physical model (in meters)
 model_diameter: 5.0
+
+# --- Hardware Test Mode ---
+# When true, main_real.py will only use a subset of LEDs for testing.
+# This allows you to test with a shorter strip without changing the main num_leds.
+enable_test_mode: true
+test_strip_led_count: 900 # Number of LEDs on your physical test strip
+
+# --- AI & Visual Tuning ---
+# Fine-tuning parameters for bird behavior and simulation visuals.
+ai_tuning:
+  chirp_probability_per_frame: 0.001
 
 # --- Simulation Cast ---
 # List of bird IDs to include in the simulation.
