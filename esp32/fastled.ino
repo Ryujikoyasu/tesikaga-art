@@ -3,7 +3,7 @@
 // --- Hardware Settings ---
 // Set to the absolute maximum number of LEDs you might ever connect.
 // This allows for flexible hardware configurations without reprogramming.
-#define NUM_LEDS         1500 // Max LEDs for 5 strips (300 pixels/strip * 5 strips)
+#define NUM_LEDS         1200 // Max LEDs for 5 strips (300 pixels/strip * 5 strips)
 #define DATA_PIN         13   // Data output pin for ESP32
 #define LED_TYPE         WS2811
 #define COLOR_ORDER      GRB

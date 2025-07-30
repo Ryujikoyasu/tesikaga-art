@@ -1,9 +1,9 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import time
 import csv
-from src.config import LED_FILE_PATH
 
 class InteractivePathEditor:
     def __init__(self, num_segments=3):
@@ -289,19 +289,27 @@ class InteractivePathEditor:
             self.update_display()
             
             try:
-                with open(LED_FILE_PATH, 'w', newline='') as csvfile:
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                output_dir = os.path.join(project_root, "assets", "data")
+                os.makedirs(output_dir, exist_ok=True)
+                
+                # ファイル名にセグメント数を含める
+                output_file_name = f"led_positions_{self.num_segments}_segments.csv"
+                full_path = os.path.join(output_dir, output_file_name)
+
+                with open(full_path, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerow(['x', 'y'])
                     writer.writerows(self.path_vertices)
-                # Output file will be named based on the number of segments
-                output_file = os.path.join(output_dir, f"led_positions_{num_segments}_segments.csv")
+                print(f"Successfully saved path to: {full_path}")
+
             except Exception as e:
                 print(f"Error saving file: {e}")
 
 if __name__ == "__main__":
     # --- User Configuration ---
     # Set the desired number of line segments.
-    NUM_SEGMENTS = 4  # <-- CHANGE THIS VALUE (e.g., 3, 4, 5, etc.)
+    NUM_SEGMENTS = 3  # <-- CHANGE THIS VALUE (e.g., 3, 4, 5, etc.)
     # --------------------------
 
     print("--- Interactive Path Builder ---")

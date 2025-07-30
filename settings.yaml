@@ -1,0 +1,43 @@
+# *******************************************************************
+# * Tesikaga Art - Main Settings
+# * This is the primary file for configuring the simulation and hardware.
+# *******************************************************************
+
+
+# -- Hardware & Layout --
+# Name of the LED position file in assets/data/
+led_layout_file: "led_positions_4_segments.csv"
+
+# Total number of physical LEDs in the strip
+num_leds: 1200
+
+# テスト時は、手元にあるLEDテープが少ない場合でも合わせることができる。NUM_LEDSの意味の混在を防ぐため。
+enable_test_mode: true
+test_strip_led_count: 100 # ここでテスト用テープのLED数を定義
+
+# Serial port for the Arduino/ESP32
+# (e.g., /dev/tty.usbmodemXXXX on Mac, COM3 on Windows)
+serial_port: "/dev/tty.usbmodem1101"
+baud_rate: 115200
+
+# -- Visual & Simulation Parameters --
+# Screen dimensions for the simulation window
+view_width: 800
+view_height: 800
+
+# The diameter of the pond area in the physical model (in meters)
+model_diameter: 5.0
+
+# --- Simulation Cast ---
+# List of bird IDs to include in the simulation.
+# Names must match the keys in src/config_structure.py
+# You can repeat names to have multiple birds of the same species.
+birds_to_simulate:
+  - ojirowasi
+  - shimafukuro
+  - tancho
+  - oohakucho
+  - ooluri
+  - kumagera
+  - nogoma
+  - benimashiko
