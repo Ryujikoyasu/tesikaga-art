@@ -32,6 +32,9 @@ try:
     AI_TUNING = settings.get('ai_tuning', {})
     CHIRP_PROBABILITY_PER_FRAME = AI_TUNING.get('chirp_probability_per_frame', 0.001)
 
+    # 光の減衰の最低光量を定義
+    MIN_BRIGHTNESS_FALLOFF = 0.3 # 30%の明るさを保証
+
     # ▼▼▼【変更点 1/6】LED数からピクセル数を計算。テストモードも考慮 ▼▼▼
     # アクティブなLED数とピクセル数を決定
     NUM_ACTIVE_LEDS = NUM_TEST_STRIP_LEDS if ENABLE_TEST_MODE else NUM_LEDS
@@ -137,7 +140,7 @@ def main_realtime():
         if 0 <= mouse_pos[0] < VIEW_WIDTH:
             world.human.update_position(view_to_model(mouse_pos))
         
-        world.update()
+        world.update(pixel_model_positions)
 
         # ▼▼▼【変更点 3/6】全ての配列をピクセル数(NUM_ACTIVE_PIXELS)で初期化 ▼▼▼
         final_pixel_colors = np.zeros((NUM_ACTIVE_PIXELS, 3), dtype=int)
@@ -158,7 +161,10 @@ def main_realtime():
             for j in range(-spread, spread + 1):
                 pixel_idx = center_idx + j
                 if 0 <= pixel_idx < NUM_ACTIVE_PIXELS:
-                    falloff = (spread - abs(j)) / spread if spread > 0 else 1.0
+                    # 線形減衰率を計算
+                    linear_falloff = (spread - abs(j)) / spread if spread > 0 else 1.0
+                    # 最低光量を保証するようにスケーリング
+                    falloff = MIN_BRIGHTNESS_FALLOFF + (1.0 - MIN_BRIGHTNESS_FALLOFF) * linear_falloff
                     final_brightness = brightness * falloff
                     if final_brightness > brightness_map[pixel_idx]:
                         brightness_map[pixel_idx], winner_map[pixel_idx] = final_brightness, i

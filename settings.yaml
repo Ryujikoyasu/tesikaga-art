@@ -3,13 +3,6 @@
 # * This is the primary file for configuring the simulation and hardware.
 # *******************************************************************
 
-# --- Hardware & Layout ---
-# Name of the LED position file in assets/data/
-led_layout_file: "led_positions_3_segments.csv"
-
-# Total number of physical LEDs in the full installation
-num_leds: 900
-
 # Serial port for the Arduino
 # Mac: /dev/tty.usbmodemXXXX or /dev/tty.usbserial-XXXX
 # Linux: /dev/ttyACM0 or /dev/ttyUSB0
@@ -25,11 +18,17 @@ view_height: 800
 # The diameter of the pond area in the physical model (in meters)
 model_diameter: 5.0
 
+# --- Hardware & Layout ---
+# Name of the LED position file in assets/data/
+led_layout_file: "led_positions_4_segments.csv"
+# Total number of physical LEDs in the full installation
+num_leds: 1200
+
 # --- Hardware Test Mode ---
 # When true, main_real.py will only use a subset of LEDs for testing.
 # This allows you to test with a shorter strip without changing the main num_leds.
 enable_test_mode: true
-test_strip_led_count: 900 # Number of LEDs on your physical test strip
+test_strip_led_count: 1200 # Number of LEDs on your physical test strip
 
 # --- AI & Visual Tuning ---
 # Fine-tuning parameters for bird behavior and simulation visuals.

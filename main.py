@@ -23,6 +23,9 @@ try:
     AI_TUNING = settings.get('ai_tuning', {})
     CHIRP_PROBABILITY_PER_FRAME = AI_TUNING.get('chirp_probability_per_frame', 0.001)
     
+    # 光の減衰の最低光量を定義
+    MIN_BRIGHTNESS_FALLOFF = 0.3 # 30%の明るさを保証
+
     # ▼▼▼【変更点 1/5】LED数からピクセル数を計算する変数を追加 ▼▼▼
     NUM_PIXELS = NUM_LEDS // 3
     
@@ -79,7 +82,7 @@ def main():
             if event.type == pygame.QUIT: running = False
 
         world.human.update_position(view_to_model(pygame.mouse.get_pos()))
-        world.update()
+        world.update(pixel_model_positions)
 
         # ▼▼▼【変更点 3/5】全ての配列をピクセル数(NUM_PIXELS)で初期化する ▼▼▼
         final_pixel_colors = np.zeros((NUM_PIXELS, 3), dtype=int)
@@ -100,7 +103,10 @@ def main():
             for j in range(-spread, spread + 1):
                 pixel_idx = center_idx + j
                 if 0 <= pixel_idx < NUM_PIXELS:
-                    falloff = (spread - abs(j)) / spread if spread > 0 else 1.0
+                    # 線形減衰率を計算
+                    linear_falloff = (spread - abs(j)) / spread if spread > 0 else 1.0
+                    # 最低光量を保証するようにスケーリング
+                    falloff = MIN_BRIGHTNESS_FALLOFF + (1.0 - MIN_BRIGHTNESS_FALLOFF) * linear_falloff
                     final_brightness = brightness * falloff
                     if final_brightness > brightness_map[pixel_idx]:
                         brightness_map[pixel_idx], winner_map[pixel_idx] = final_brightness, i

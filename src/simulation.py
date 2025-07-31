@@ -38,11 +38,15 @@ class World:
             bird.position = bird.position / dist_from_center_after_move * self.model_radius
             bird.velocity *= -0.5 # Lose energy on impact
 
-    def update(self):
+    def update(self, pixel_model_positions): # ★引数を追加
         """The main update loop for the entire simulation."""
+        # 毎フレーム、全鳥の物理ピクセル位置を計算
+        pixel_centers = [np.argmin(np.linalg.norm(pixel_model_positions - bird.position, axis=1)) for bird in self.birds]
+
         # 1. First, update the AI of all birds to determine their intentions.
-        for bird in self.birds:
-            bird.update(self.human, self.birds)
+        # 鳥のAIに、物理世界の情報を渡して更新
+        for i, bird in enumerate(self.birds):
+            bird.update(self.human, self.birds, i, pixel_centers) # ★引数を追加
         
         # 2. Then, apply the world's physics and rules to each bird.
         for bird in self.birds:

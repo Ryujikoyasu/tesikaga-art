@@ -7,12 +7,12 @@ def get_base_config():
         # - "color_structure" is replaced by "color_pattern" and "chirp_color_pattern".
         # - 'b' in patterns denotes base_color, 'a' denotes accent_color.
         
-        # ▼▼▼【変更点】ここから下の鳥たちのパラメータを全体的に見直しました ▼▼▼
         "ooluri": {
             "name_jp": "オオルリ", 
             "base_color": [20, 100, 240], "accent_color": [240, 240, 255], 
             "base_pixel_count": 4, # 少しだけ大きく
             "size": 1.0, 
+            "pixel_personal_space": 5,
             # パターンを[B,A,A,B]に変更し、中心の輝きを強調
             "color_pattern": [['b', 1], ['a', 2], ['b', 1]], 
             "chirp_color_pattern": [['b', 1], ['a', 2], ['b', 1]],
@@ -26,6 +26,7 @@ def get_base_config():
             "base_color": [255, 250, 240], "accent_color": [255, 220, 0], 
             "base_pixel_count": 6,
             "size": 4.0, 
+            "pixel_personal_space": 5,
             "color_pattern": [['b', 2], ['a', 2], ['b', 2]],
             "chirp_color_pattern": [['a', 1], ['b', 4], ['a', 1]],
             "movement_speed": 0.08, "approach_speed": 0.02, "curiosity": 0.1, 
@@ -37,6 +38,7 @@ def get_base_config():
             "base_color": [240, 220, 180], "accent_color": [255, 215, 0], 
             "base_pixel_count": 6,
             "size": 5.0, 
+            "pixel_personal_space": 5,
             "color_pattern": [['b', 2], ['a', 2], ['b', 2]],
             "chirp_color_pattern": [['a', 3], ['b', 3]],
             "movement_speed": 0.05, "approach_speed": 0.0, "curiosity": 0.0, 
@@ -48,6 +50,7 @@ def get_base_config():
             "base_color": [70, 130, 180], "accent_color": [255, 255, 100], 
             "base_pixel_count": 5,
             "size": 4.5, 
+            "pixel_personal_space": 5,
             "color_pattern": [['b', 2], ['a', 1], ['b', 2]],
             "chirp_color_pattern": [['a', 5]],
             "movement_speed": 0.1, "approach_speed": 0.0, "curiosity": 0.01, 
@@ -61,6 +64,7 @@ def get_base_config():
             # 最小ピクセル数を3に
             "base_pixel_count": 3,
             "size": 1.5, 
+            "pixel_personal_space": 5,
             # パターンを「黒-赤-黒」のシンメトリーな形に
             "color_pattern": [['b', 1], ['a', 1], ['b', 1]],
             "chirp_color_pattern": [['a', 3]], # 鳴くときは赤一色で点滅
@@ -74,6 +78,7 @@ def get_base_config():
             "base_color": [255, 255, 255], "accent_color": [220, 0, 0], 
             "base_pixel_count": 5,
             "size": 3.5, 
+            "pixel_personal_space": 5,
             "color_pattern": [['b', 2], ['a', 1], ['b', 2]],
             "chirp_color_pattern": [['a', 1], ['b', 1], ['a', 1], ['b', 1], ['a', 1]],
             "movement_speed": 0.1, "approach_speed": 0.05, "curiosity": 0.3, 
@@ -87,6 +92,7 @@ def get_base_config():
             # 最小ピクセル数を3に
             "base_pixel_count": 3,
             "size": 0.8, 
+            "pixel_personal_space": 5,
             # パターンを「茶-赤-茶」のシンメトリーな形に
             "color_pattern": [['b', 1], ['a', 1], ['b', 1]],
             "chirp_color_pattern": [['a', 3]], # 鳴くときは喉の赤だけが光る
@@ -100,6 +106,7 @@ def get_base_config():
             # 最小ピクセル数を3に
             "base_pixel_count": 3,
             "size": 0.9, 
+            "pixel_personal_space": 5,
             # パターンを「淡赤-濃赤-淡赤」のグラデーションを感じる形に
             "color_pattern": [['a', 1], ['b', 1], ['a', 1]],
             "chirp_color_pattern": [['a', 1], ['b', 2]],

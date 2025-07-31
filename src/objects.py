@@ -40,6 +40,7 @@ class Bird:
         self.caution_distance = self.params['caution_distance']
         self.flee_distance = self.params['flee_distance']
         self.chirp_patterns = self.params.get('chirp_pattern', {})
+        self.pixel_personal_space = self.params.get('pixel_personal_space', 3) # デフォルト値を設定
 
         # State initialization
         self.position = np.array([0.0, 0.0])
@@ -70,8 +71,33 @@ class Bird:
             return self.chirp_color_pattern, dynamic_pixel_count
         return self.color_pattern, self.base_pixel_count
 
-    def update(self, human, all_birds):
-        """Updates the bird's internal state and intended velocity."""
+    def update(self, human, all_birds, my_index, all_pixel_centers):
+        """1D/2D空間を考慮して鳥の状態を更新する"""
+        
+        # --- 1. LEDテープ上(1D)の縄張り意識 ---
+        my_pixel_pos = all_pixel_centers[my_index]
+        led_repulsion_vec = np.array([0.0, 0.0])
+
+        for other_index, other in enumerate(all_birds):
+            if self is other: continue
+
+            other_pixel_pos = all_pixel_centers[other_index]
+            pixel_distance = abs(my_pixel_pos - other_pixel_pos)
+
+            # 縄張り内に他の鳥がいたら、2D空間で反発
+            if pixel_distance < self.pixel_personal_space:
+                vec_to_other_2d = other.position - self.position
+                dist_to_other_2d = np.linalg.norm(vec_to_other_2d)
+
+                if dist_to_other_2d > 1e-6:
+                    overlap = self.pixel_personal_space - pixel_distance
+                    repulsion_force = (vec_to_other_2d / dist_to_other_2d) * (overlap / self.pixel_personal_space)
+                    led_repulsion_vec -= repulsion_force
+        
+        # 反発力を速度に穏やかに加える
+        self.velocity += led_repulsion_vec * self.speed * 0.5
+
+        # --- 2. 人間とのインタラクション(2D)とステートマシン (既存ロジック) ---
         distance_to_human = np.linalg.norm(self.position - human.position)
         
         if self.state not in ["CHIRPING", "FLEEING"]:
