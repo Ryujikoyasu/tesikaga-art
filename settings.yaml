@@ -30,10 +30,22 @@ num_leds: 1200
 enable_test_mode: true
 test_strip_led_count: 1200 # Number of LEDs on your physical test strip
 
+# ===================================================================
+# === INPUT SOURCE CONFIGURATION
+# ===================================================================
+# "mouse" または "udp" を指定
+input_source_type: "mouse" 
+
+# UDPを使用する場合の設定
+udp_settings:
+  host: "0.0.0.0"
+  port: 9999
+
 # --- AI & Visual Tuning ---
 # Fine-tuning parameters for bird behavior and simulation visuals.
 ai_tuning:
   chirp_probability_per_frame: 0.003
+  min_brightness_falloff: 0.4 # 40% brightness guarantee for falloff
 
 # --- Simulation Cast ---
 # List of bird IDs to include in the simulation.

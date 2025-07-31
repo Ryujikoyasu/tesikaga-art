@@ -1,19 +1,29 @@
 import numpy as np
 import random
+from src.objects import Human
 
 class World:
     """
     Manages all simulation objects and enforces world rules like boundaries.
     This is the "environment" or "stage" where the actors live.
     """
-    def __init__(self, model_radius, human, birds):
+    def __init__(self, model_radius, birds):
         self.model_radius = model_radius
-        self.human = human
+        self.humans = [] 
         self.birds = birds
         # The World is responsible for setting the initial positions of the actors.
         for bird in self.birds:
             bird.position = self._get_random_position()
             bird.target_position = bird.position
+
+    def update_humans(self, human_positions):
+        # ここではシンプルな実装を採用：毎フレーム、リストを再構築する
+        # (より高度な実装では、ID追跡なども可能)
+        self.humans = []
+        for pos in human_positions:
+            h = Human() # objects.py の Human クラス
+            h.update_position(pos) # ひとまずstill_timerは気にしない
+            self.humans.append(h)
 
     def _get_random_position(self):
         """Returns a random position within the world's radius."""
@@ -38,15 +48,13 @@ class World:
             bird.position = bird.position / dist_from_center_after_move * self.model_radius
             bird.velocity *= -0.5 # Lose energy on impact
 
-    def update(self, pixel_model_positions): # ★引数を追加
+    def update(self, pixel_model_positions):
         """The main update loop for the entire simulation."""
-        # 毎フレーム、全鳥の物理ピクセル位置を計算
         pixel_centers = [np.argmin(np.linalg.norm(pixel_model_positions - bird.position, axis=1)) for bird in self.birds]
 
         # 1. First, update the AI of all birds to determine their intentions.
-        # 鳥のAIに、物理世界の情報を渡して更新
         for i, bird in enumerate(self.birds):
-            bird.update(self.human, self.birds, i, pixel_centers) # ★引数を追加
+            bird.update(self.humans, self.birds, i, pixel_centers)
         
         # 2. Then, apply the world's physics and rules to each bird.
         for bird in self.birds:

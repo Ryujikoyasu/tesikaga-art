@@ -71,9 +71,18 @@ class Bird:
             return self.chirp_color_pattern, dynamic_pixel_count
         return self.color_pattern, self.base_pixel_count
 
-    def update(self, human, all_birds, my_index, all_pixel_centers):
+    def update(self, humans, all_birds, my_index, all_pixel_centers):
         """1D/2D空間を考慮して鳥の状態を更新する"""
-        
+
+        # --- 0. 最もインタラクションすべき人間を見つける ---
+        nearest_human = None
+        min_dist_to_human = float('inf')
+        if humans: # 人間が一人でも存在する場合
+            distances = [np.linalg.norm(self.position - h.position) for h in humans]
+            min_idx = np.argmin(distances)
+            min_dist_to_human = distances[min_idx]
+            nearest_human = humans[min_idx]
+
         # --- 1. LEDテープ上(1D)の縄張り意識 ---
         my_pixel_pos = all_pixel_centers[my_index]
         led_repulsion_vec = np.array([0.0, 0.0])
@@ -97,57 +106,60 @@ class Bird:
         # 反発力を速度に穏やかに加える
         self.velocity += led_repulsion_vec * self.speed * 0.5
 
-        # --- 2. 人間とのインタラクション(2D)とステートマシン (既存ロジック) ---
-        distance_to_human = np.linalg.norm(self.position - human.position)
-        
-        if self.state not in ["CHIRPING", "FLEEING"]:
-            if distance_to_human < self.flee_distance: self.state = "FLEEING"
-            elif distance_to_human < self.caution_distance: self.state = "CAUTION"
-            elif human.still_timer > 180 and random.random() < self.curiosity: self.state = "CURIOUS"
-        
-        self.action_timer -= 1
+        # --- 2. 人間とのインタラクション(2D)とステートマシン ---
+        if nearest_human: # 最も近い人間が存在する場合のみ、インタラクションを考慮
+            if self.state not in ["CHIRPING", "FLEEING"]:
+                if min_dist_to_human < self.flee_distance: self.state = "FLEEING"
+                elif min_dist_to_human < self.caution_distance: self.state = "CAUTION"
+                # still_timer を nearest_human から取得
+                elif nearest_human.still_timer > 180 and random.random() < self.curiosity: self.state = "CURIOUS"
+            
+            self.action_timer -= 1
 
-        if self.state == "IDLE":
-            self.velocity *= 0.8
-            if self.action_timer <= 0:
-                self.state = "FORAGING" if random.random() < 0.7 else "EXPLORING"
-                self.action_timer = random.randint(120, 300) if self.state == "FORAGING" else random.randint(180, 400)
-                if self.state == "EXPLORING":
-                    distance = random.uniform(1.5, 4.0)
-                    angle = random.uniform(0, 2 * np.pi)
-                    self.target_position = self.position + np.array([np.cos(angle), np.sin(angle)]) * distance
-        elif self.state == "FORAGING":
-            if random.random() < 0.1: self.velocity += (np.random.rand(2) - 0.5) * 0.02
-            else: self.velocity *= 0.7
-            if self.action_timer <= 0: self.state = "IDLE"; self.action_timer = random.randint(180, 400)
-        elif self.state == "EXPLORING":
-            direction_vec = self.target_position - self.position
-            if np.linalg.norm(direction_vec) < 0.2: self.state = "IDLE"; self.action_timer = random.randint(180, 400)
-            else: self.velocity += direction_vec / np.linalg.norm(direction_vec) * self.speed * 0.1
-        elif self.state == "CURIOUS":
-            direction_vec = human.position - self.position; dist = np.linalg.norm(direction_vec)
-            if dist < self.caution_distance * 0.8: self.state = "IDLE"; self.action_timer = random.randint(180, 400)
-            else: self.velocity += direction_vec / dist * self.approach_speed * 0.1
-            if human.still_timer == 0: self.state = "CAUTION"
-        elif self.state == "FLEEING":
-            self.velocity += (self.position - human.position) / distance_to_human * self.speed * 0.3
-            if distance_to_human > self.flee_distance * 1.5: self.state = "CAUTION"
-        elif self.state == "CAUTION":
-            self.velocity *= 0.8
-            if distance_to_human > self.caution_distance * 1.2: self.state = "IDLE"
-        elif self.state == "CHIRPING":
-            self.velocity *= 0.8
-            self.chirp_playback_time += 1.0 / 60.0
-            self.current_brightness = 0.0
-            active_pattern = self.chirp_patterns.get(self.active_pattern_key, [])
-            for i in range(len(active_pattern) - 1):
-                start_time, start_bright = active_pattern[i]; end_time, end_bright = active_pattern[i+1]
-                if start_time <= self.chirp_playback_time < end_time:
-                    time_delta = end_time - start_time
-                    progress = (self.chirp_playback_time - start_time) / time_delta if time_delta > 0 else 0
-                    self.current_brightness = start_bright + (end_bright - start_bright) * progress
-                    break
-            if self.action_timer <= 0: self.state = "IDLE"; self.current_brightness = 0.0; self.active_pattern_key = None
+            if self.state == "IDLE":
+                self.velocity *= 0.8
+                if self.action_timer <= 0:
+                    self.state = "FORAGING" if random.random() < 0.7 else "EXPLORING"
+                    self.action_timer = random.randint(120, 300) if self.state == "FORAGING" else random.randint(180, 400)
+                    if self.state == "EXPLORING":
+                        distance = random.uniform(1.5, 4.0)
+                        angle = random.uniform(0, 2 * np.pi)
+                        self.target_position = self.position + np.array([np.cos(angle), np.sin(angle)]) * distance
+            elif self.state == "FORAGING":
+                if random.random() < 0.1: self.velocity += (np.random.rand(2) - 0.5) * 0.02
+                else: self.velocity *= 0.7
+                if self.action_timer <= 0: self.state = "IDLE"; self.action_timer = random.randint(180, 400)
+            elif self.state == "EXPLORING":
+                direction_vec = self.target_position - self.position
+                if np.linalg.norm(direction_vec) < 0.2: self.state = "IDLE"; self.action_timer = random.randint(180, 400)
+                else: self.velocity += direction_vec / np.linalg.norm(direction_vec) * self.speed * 0.1
+            elif self.state == "CURIOUS":
+                direction_vec = nearest_human.position - self.position; dist = np.linalg.norm(direction_vec)
+                if dist < self.caution_distance * 0.8: self.state = "IDLE"; self.action_timer = random.randint(180, 400)
+                else: self.velocity += direction_vec / dist * self.approach_speed * 0.1
+                if nearest_human.still_timer == 0: self.state = "CAUTION"
+            elif self.state == "FLEEING":
+                self.velocity += (self.position - nearest_human.position) / min_dist_to_human * self.speed * 0.3
+                if min_dist_to_human > self.flee_distance * 1.5: self.state = "CAUTION"
+            elif self.state == "CAUTION":
+                self.velocity *= 0.8
+                if min_dist_to_human > self.caution_distance * 1.2: self.state = "IDLE"
+            elif self.state == "CHIRPING":
+                self.velocity *= 0.8
+                self.chirp_playback_time += 1.0 / 60.0
+                self.current_brightness = 0.0
+                active_pattern = self.chirp_patterns.get(self.active_pattern_key, [])
+                for i in range(len(active_pattern) - 1):
+                    start_time, start_bright = active_pattern[i]; end_time, end_bright = active_pattern[i+1]
+                    if start_time <= self.chirp_playback_time < end_time:
+                        time_delta = end_time - start_time
+                        progress = (self.chirp_playback_time - start_time) / time_delta if time_delta > 0 else 0
+                        self.current_brightness = start_bright + (end_bright - start_bright) * progress
+                        break
+                if self.action_timer <= 0: self.state = "IDLE"; self.current_brightness = 0.0; self.active_pattern_key = None
+        else: # 人間が誰もいない場合
+            if self.state in ["FLEEING", "CAUTION", "CURIOUS"]:
+                self.state = "IDLE" # アイドル状態に戻す
 
         if self.state in ["IDLE", "FORAGING"] and self.action_timer > 0 and random.random() < self.chirp_probability:
             self.active_pattern_key = 'drumming' if self.id == 'kumagera' else 'default'
