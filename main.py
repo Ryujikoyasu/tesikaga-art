@@ -7,6 +7,7 @@ from src.config import BIRD_PARAMS
 from src.objects import Human, Bird
 from src.simulation import World
 from src.renderer import Renderer
+from src.coordinates import CoordinateSystem
 
 # --- Load all settings from settings.yaml ---
 try:
@@ -34,14 +35,6 @@ except Exception as e:
     print(f"FATAL: Error loading settings from 'settings.yaml'. Please check the file. Error: {e}")
     exit()
 
-# --- Helper Functions (Coordinate Conversion) ---
-# These are kept here as they are specific to the Pygame window interaction
-def model_to_view(pos_m, world_radius, model_radius, view_size):
-    return pos_m * (world_radius / model_radius) + np.array([view_size[0] / 2, view_size[1] / 2])
-
-def view_to_model(pos_px, world_radius, model_radius, view_size):
-    return (np.array(pos_px) - np.array([view_size[0] / 2, view_size[1] / 2])) / (world_radius / model_radius)
-
 def main():
     pygame.init()
     pygame.mixer.init()
@@ -49,15 +42,14 @@ def main():
     pygame.display.set_caption("Left: Debug View | Right: Artistic View (Synced to Physical Pixels)")
     clock = pygame.time.Clock()
 
+    # --- Coordinate System ---    
+    coord_system = CoordinateSystem(view_size=(VIEW_WIDTH, SCREEN_HEIGHT), model_radius=MODEL_RADIUS)
+
     # --- Data and Object Initialization ---
     try:
         all_led_positions = np.loadtxt(LED_FILE_PATH, delimiter=',', skiprows=1)[:NUM_LEDS]
         pixel_model_positions = np.array([np.mean(all_led_positions[i*3:(i+1)*3], axis=0) for i in range(NUM_PIXELS)])
         
-        # We need a reference for the renderer to convert model coords to view coords
-        # This uses the renderer's internal world_radius and the main settings view_width/height
-        pixel_view_positions = np.array([model_to_view(p, 350, MODEL_RADIUS, (VIEW_WIDTH, SCREEN_HEIGHT)) for p in pixel_model_positions])
-
     except Exception as e:
         print(f"FATAL: Could not load LED data from '{LED_FILE_PATH}'. Error: {e}")
         return
@@ -67,7 +59,7 @@ def main():
     world = World(MODEL_RADIUS, bird_objects)
     
     # The renderer now handles all drawing surfaces and logic
-    renderer = Renderer(settings, pixel_model_positions, pixel_view_positions)
+    renderer = Renderer(settings, pixel_model_positions, coord_system)
 
     # --- Main Simulation Loop ---
     running = True
@@ -77,7 +69,7 @@ def main():
                 running = False
 
         # Update simulation state
-        mouse_pos_model = view_to_model(pygame.mouse.get_pos(), 350, MODEL_RADIUS, (VIEW_WIDTH, SCREEN_HEIGHT))
+        mouse_pos_model = coord_system.view_to_model(pygame.mouse.get_pos())
         human.update_position(mouse_pos_model)
         world.update_humans([human.position]) # Simulate a list with one human
         world.update(pixel_model_positions)

@@ -1,17 +1,15 @@
 
 import pygame
 import numpy as np
-import serial
-import time
 import os
 import yaml
-import threading
-import queue
 from src.config import BIRD_PARAMS
-from src.objects import Human, Bird
+from src.objects import Bird
 from src.simulation import World
 from src.renderer import Renderer
 from src.input_source import MouseInputSource, UdpInputSource
+from src.serial_handler import SerialWriterThread
+from src.coordinates import CoordinateSystem
 
 # --- Load all settings from settings.yaml ---
 try:
@@ -61,51 +59,6 @@ except Exception as e:
     print(f"FATAL: Error loading settings from 'settings.yaml'. Error: {e}")
     exit()
 
-class SerialWriterThread(threading.Thread):
-    def __init__(self, port, baudrate):
-        super().__init__(daemon=True)
-        self.port, self.baudrate = port, baudrate
-        self.ser, self.queue, self.running = None, queue.Queue(maxsize=2), False
-
-    def connect(self):
-        try:
-            self.ser = serial.Serial(self.port, self.baudrate, timeout=1, write_timeout=1)
-            print(f"Successfully connected to Arduino on {self.port}")
-            time.sleep(2)
-            return True
-        except serial.SerialException as e:
-            print(f"FATAL: Could not connect to Arduino: {e}"); return False
-
-    def run(self):
-        self.running = True
-        if not self.connect(): self.running = False; return
-        while self.running:
-            try:
-                colors = self.queue.get(timeout=1)
-                packet = bytearray([MAGIC_BYTE]) + colors.astype(np.uint8).tobytes()
-                if self.ser and self.ser.is_open: self.ser.write(packet); self.ser.flush()
-            except queue.Empty: continue
-            except Exception as e: print(f"Serial thread error: {e}"); self.running = False
-        if self.ser and self.ser.is_open: self.ser.close()
-        print("Serial thread stopped.")
-
-    def send(self, data):
-        if not self.running: return
-        if self.queue.full():
-            try: self.queue.get_nowait()
-            except queue.Empty: pass
-        self.queue.put(data)
-
-    def close(self):
-        print("Stopping serial thread..."); self.running = False
-
-# --- Helper Functions (Coordinate Conversion) ---
-def model_to_view(pos_m, world_radius, model_radius, view_size):
-    return pos_m * (world_radius / model_radius) + np.array([view_size[0] / 2, view_size[1] / 2])
-
-def view_to_model(pos_px, world_radius, model_radius, view_size):
-    return (np.array(pos_px) - np.array([view_size[0] / 2, view_size[1] / 2])) / (world_radius / model_radius)
-
 def main_realtime():
     pygame.init()
     pygame.mixer.init()
@@ -113,14 +66,16 @@ def main_realtime():
     pygame.display.set_caption("Left: Debug View | Right: Artistic View (Synced to Physical Pixels)")
     clock = pygame.time.Clock()
     
-    serial_thread = SerialWriterThread(SERIAL_PORT, BAUD_RATE)
+    serial_thread = SerialWriterThread(SERIAL_PORT, BAUD_RATE, MAGIC_BYTE, NUM_ACTIVE_PIXELS)
     serial_thread.start()
+
+    # --- Coordinate System ---
+    coord_system = CoordinateSystem(view_size=(VIEW_WIDTH, VIEW_HEIGHT), model_radius=MODEL_RADIUS)
 
     # --- Data and Object Initialization ---
     try:
         all_led_positions = np.loadtxt(LED_FILE_PATH, delimiter=',', skiprows=1)
         pixel_model_positions = np.array([np.mean(all_led_positions[i*3:(i+1)*3], axis=0) for i in range(NUM_ACTIVE_PIXELS)])
-        pixel_view_positions = np.array([model_to_view(p, 350, MODEL_RADIUS, (VIEW_WIDTH, VIEW_HEIGHT)) for p in pixel_model_positions])
 
     except Exception as e:
         print(f"FATAL: Could not load LED data from '{LED_FILE_PATH}'. Error: {e}")
@@ -130,7 +85,7 @@ def main_realtime():
     if INPUT_SOURCE_TYPE == 'udp':
         input_source = UdpInputSource(host=UDP_SETTINGS.get('host', '0.0.0.0'), port=UDP_SETTINGS.get('port', 9999))
     elif INPUT_SOURCE_TYPE == 'mouse':
-        input_source = MouseInputSource(lambda pos: view_to_model(pos, 350, MODEL_RADIUS, (VIEW_WIDTH, VIEW_HEIGHT)))
+        input_source = MouseInputSource(coord_system.view_to_model)
     else:
         print(f"FATAL: Unknown input_source_type '{INPUT_SOURCE_TYPE}' in settings.yaml. Exiting.")
         return
@@ -138,7 +93,7 @@ def main_realtime():
     bird_objects = [Bird(bird_id, BIRD_PARAMS[bird_id], CHIRP_PROBABILITY_PER_FRAME) for bird_id in BIRDS_TO_SIMULATE if bird_id in BIRD_PARAMS]
     world = World(MODEL_RADIUS, bird_objects)
     
-    renderer = Renderer(settings, pixel_model_positions, pixel_view_positions)
+    renderer = Renderer(settings, pixel_model_positions, coord_system)
     
     print("Starting real-time simulation and LED output...")
     running = True

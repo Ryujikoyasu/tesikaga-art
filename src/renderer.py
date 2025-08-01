@@ -1,31 +1,33 @@
 
 import pygame
 import numpy as np
+from src.coordinates import CoordinateSystem
 
 class Renderer:
     """
     Handles all rendering tasks for the simulation, including debug and artistic views.
     """
-    def __init__(self, settings, pixel_model_positions, pixel_view_positions):
+    def __init__(self, settings, pixel_model_positions, coord_system: CoordinateSystem):
         """
         Initializes the Renderer with necessary settings and pre-calculated positions.
         
         Args:
             settings (dict): The main settings dictionary.
             pixel_model_positions (np.array): (N, 2) array of pixel positions in model space.
-            pixel_view_positions (np.array): (N, 2) array of pixel positions in Pygame view space.
+            coord_system (CoordinateSystem): The coordinate system converter.
         """
         # Settings
         self.view_width = settings.get('view_width', 800)
         self.view_height = settings.get('view_height', 800)
-        self.world_radius = 350 # This is a view-space constant
-        self.model_radius = settings['model_diameter'] / 2.0
         self.min_brightness_falloff = settings.get('min_brightness_falloff', 0.3)
         self.debug_min_bird_size_px = 6.0
 
+        # Coordinate system
+        self.coord_system = coord_system
+        
         # Pixel data
         self.pixel_model_positions = pixel_model_positions
-        self.pixel_view_positions = pixel_view_positions
+        self.pixel_view_positions = np.array([self.coord_system.model_to_view(p) for p in self.pixel_model_positions])
         self.num_pixels = len(pixel_model_positions)
 
         # Surfaces for drawing
@@ -38,23 +40,19 @@ class Renderer:
         # Calculated colors from the last frame, can be fetched for real-time output
         self.final_pixel_colors = np.zeros((self.num_pixels, 3), dtype=int)
 
-    def _model_to_view(self, pos_m):
-        """Converts a position from model space to view (pixel) space."""
-        return pos_m * (self.world_radius / self.model_radius) + np.array([self.view_width / 2, self.view_height / 2])
-
     def _create_static_backgrounds(self):
         """Creates the non-changing background elements for both views."""
         # Debug view background
         self.static_debug_bg = pygame.Surface((self.view_width, self.view_height))
         self.static_debug_bg.fill((25, 28, 35))
-        pygame.draw.circle(self.static_debug_bg, (20, 40, 80), (self.view_width // 2, self.view_height // 2), self.world_radius)
+        pygame.draw.circle(self.static_debug_bg, (20, 40, 80), self.coord_system.view_center, self.coord_system.view_radius)
         for pos_px in self.pixel_view_positions:
             pygame.draw.circle(self.static_debug_bg, (50, 50, 50), pos_px, 2)
 
         # Artistic view background
         self.static_art_bg = pygame.Surface((self.view_width, self.view_height))
         self.static_art_bg.fill((5, 8, 15))
-        pygame.draw.circle(self.static_art_bg, (20, 40, 80), (self.view_width // 2, self.view_height // 2), self.world_radius)
+        pygame.draw.circle(self.static_art_bg, (20, 40, 80), self.coord_system.view_center, self.coord_system.view_radius)
 
     def calculate_pixel_colors(self, world):
         """
@@ -120,12 +118,12 @@ class Renderer:
         # 2. Draw the Debug View
         self.debug_surface.blit(self.static_debug_bg, (0, 0))
         for bird in world.birds:
-            pos_px = self._model_to_view(bird.position)
+            pos_px = self.coord_system.model_to_view(bird.position)
             size_px = max(bird.params['size'] * 2.5, self.debug_min_bird_size_px)
             pygame.draw.circle(self.debug_surface, bird.base_color, pos_px, size_px)
             pygame.draw.circle(self.debug_surface, bird.accent_color, pos_px, size_px * 0.4)
         for human in world.humans:
-            pygame.draw.circle(self.debug_surface, (255, 255, 255), self._model_to_view(human.position), 10)
+            pygame.draw.circle(self.debug_surface, (255, 255, 255), self.coord_system.model_to_view(human.position), 10)
 
         # 3. Draw the Artistic View
         self.art_surface.blit(self.static_art_bg, (0, 0))
