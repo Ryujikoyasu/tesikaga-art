@@ -50,13 +50,21 @@ class World:
                 # 速度とサイズの変化を計算 (60.0はフレームレート)
                 velocity = (current_pos - last_human.position) * 60.0
                 size_change = current_size - last_human.size
+
+                # 前フレームの滑らかな速度を使って、新しい速度を平滑化する
+                last_smooth_velocity = last_human.smooth_velocity
+                smooth_vel = last_smooth_velocity * 0.9 + velocity * 0.1 # 90%は過去を維持、10%だけ新しい情報を反映
                 
-                # 新しいHumanオブジェクトを作成 (varianceにsize_changeを格納)
-                new_human = Human(current_pos, velocity, current_size, size_change)
+                # 新しいHumanオブジェクトを作成
+                new_human = Human(current_pos, smooth_vel, current_size, size_change)
+                # 計算したばかりの生の速度も保持しておく（次回の平滑化計算のため）
+                new_human.smooth_velocity = smooth_vel
+
                 current_humans_by_id[best_match_id] = new_human
 
             # 3. マッチしなかったら、新規Humanとして登録
             else:
+                # 新規オブジェクトの速度は0, size_changeも0
                 new_human = Human(current_pos, np.array([0.0, 0.0]), current_size, 0.0)
                 current_humans_by_id[self.next_human_id] = new_human
                 self.next_human_id += 1

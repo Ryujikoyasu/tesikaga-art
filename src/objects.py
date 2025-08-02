@@ -5,15 +5,12 @@ import os
 
 class Human:
     """Represents the user in the simulation. An "actor" in the world."""
-    def __init__(self, position, velocity=np.array([0.0, 0.0]), size=1.0, variance=0.0):
-        """
-        Humanオブジェクトを初期化する。
-        velocity, size, varianceはオプションで、デフォルト値を持つ。
-        """
+    def __init__(self, position, velocity, size, size_change):
         self.position = np.array(position)
-        self.velocity = np.array(velocity)
+        self.velocity = np.array(velocity) # 鳥のAIが参照する、平滑化された速度
+        self.smooth_velocity = np.array(velocity) # 次フレーム計算用の平滑化速度
         self.size = size
-        self.variance = variance
+        self.size_change = size_change # varianceから改名
 
 class Bird:
     """
@@ -109,9 +106,8 @@ class Bird:
             if np.linalg.norm(nearest_human.velocity) > 0.5: # 速度が速い人間には、より遠くから逃げる
                 self.state = "FLEEING"
             
-            # 手を広げた（varianceが大きい）ら、特別な鳴き声を出す（例）
-            # 閾値はsettings.yamlなどで調整可能にすると良い
-            if nearest_human.variance > 1.0: # THRESHOLD_VARIANCE
+            # 手を広げた（サイズが急に大きくなった）ら、特別な鳴き声を出す
+            if nearest_human.size_change > 0.5: # THRESHOLD_SIZE_CHANGE
                 # TODO: ここで特別な鳴き声の再生や状態変化を実装
                 pass # 例: self.state = "SURPRISED_CHIRP"
 
