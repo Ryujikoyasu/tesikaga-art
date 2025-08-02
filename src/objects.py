@@ -5,18 +5,15 @@ import os
 
 class Human:
     """Represents the user in the simulation. An "actor" in the world."""
-    def __init__(self):
-        self.position = np.array([0.0, 0.0])
-        self.still_timer = 0
-        self.last_position = np.array([0.0, 0.0])
-
-    def update_position(self, model_space_pos):
-        if np.linalg.norm(model_space_pos - self.last_position) < 0.01:
-            self.still_timer += 1
-        else:
-            self.still_timer = 0
-        self.last_position = model_space_pos
-        self.position = model_space_pos
+    def __init__(self, position, velocity=np.array([0.0, 0.0]), size=1.0, variance=0.0):
+        """
+        Humanオブジェクトを初期化する。
+        velocity, size, varianceはオプションで、デフォルト値を持つ。
+        """
+        self.position = np.array(position)
+        self.velocity = np.array(velocity)
+        self.size = size
+        self.variance = variance
 
 class Bird:
     """
@@ -108,11 +105,22 @@ class Bird:
 
         # --- 2. 人間とのインタラクション(2D)とステートマシン ---
         if nearest_human: # 最も近い人間が存在する場合のみ、インタラクションを考慮
+            # 新しいロジック：速度や分散に基づく状態変化
+            if np.linalg.norm(nearest_human.velocity) > 0.5: # 速度が速い人間には、より遠くから逃げる
+                self.state = "FLEEING"
+            
+            # 手を広げた（varianceが大きい）ら、特別な鳴き声を出す（例）
+            # 閾値はsettings.yamlなどで調整可能にすると良い
+            if nearest_human.variance > 1.0: # THRESHOLD_VARIANCE
+                # TODO: ここで特別な鳴き声の再生や状態変化を実装
+                pass # 例: self.state = "SURPRISED_CHIRP"
+
             if self.state not in ["CHIRPING", "FLEEING"]:
                 if min_dist_to_human < self.flee_distance: self.state = "FLEEING"
                 elif min_dist_to_human < self.caution_distance: self.state = "CAUTION"
-                # still_timer を nearest_human から取得
-                elif nearest_human.still_timer > 180 and random.random() < self.curiosity: self.state = "CURIOUS"
+                # 人間の速度が非常に遅い（ほぼ静止）場合に、好奇心を示す
+                elif np.linalg.norm(nearest_human.velocity) < 0.05 and random.random() < self.curiosity: 
+                    self.state = "CURIOUS"
             
             self.action_timer -= 1
 
@@ -137,7 +145,8 @@ class Bird:
                 direction_vec = nearest_human.position - self.position; dist = np.linalg.norm(direction_vec)
                 if dist < self.caution_distance * 0.8: self.state = "IDLE"; self.action_timer = random.randint(180, 400)
                 else: self.velocity += direction_vec / dist * self.approach_speed * 0.1
-                if nearest_human.still_timer == 0: self.state = "CAUTION"
+                # 人間が動き出したら、警戒状態に戻る
+                if np.linalg.norm(nearest_human.velocity) > 0.1: self.state = "CAUTION"
             elif self.state == "FLEEING":
                 self.velocity += (self.position - nearest_human.position) / min_dist_to_human * self.speed * 0.3
                 if min_dist_to_human > self.flee_distance * 1.5: self.state = "CAUTION"

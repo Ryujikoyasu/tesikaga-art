@@ -102,11 +102,11 @@ def main_realtime():
             if event.type == pygame.QUIT:
                 running = False
         
-        # Get human positions from the selected input source
-        human_positions = input_source.get_human_positions()
+        # Get raw detected objects from the selected input source
+        detected_objects = input_source.get_detected_objects()
 
-        # Update the world with the list of humans
-        world.update_humans(human_positions)
+        # Update the world with the raw data, which will handle object tracking
+        world.update_humans(detected_objects)
         
         # Update the main world simulation
         world.update(pixel_model_positions)

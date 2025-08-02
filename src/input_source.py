@@ -1,73 +1,74 @@
-# src/input_source.py
 import abc
 import pygame
 import socket
 import threading
 import numpy as np
-import queue
+
+# Humanクラスのインポートは不要になる
+# from .objects import Human 
 
 # -------------------------------------------------------------
-# 1. 共通のインターフェース（コンセント）を定義
+# 1. 共通のインターフェースを定義
 # -------------------------------------------------------------
 class InputSource(abc.ABC):
-    """入力ソースの振る舞いを定義する抽象基底クラス（コンセント）"""
+    """入力ソースの振る舞いを定義する抽象基底クラス"""
     @abc.abstractmethod
-    def get_human_positions(self) -> list[np.ndarray]:
-        """シミュレーション空間にマッピングされた人間の座標リストを返す"""
+    def get_detected_objects(self) -> np.ndarray:
+        """検出されたオブジェクトの生データ（Numpy配列）を返す"""
         pass
     
     def shutdown(self):
-        """クリーンアップ処理（スレッド停止など）"""
+        """クリーンアップ処理"""
         pass
 
 # -------------------------------------------------------------
-# 2. マウス用の具体的な実装（マウス用プラグ）
+# 2. マウス用の具体的な実装
 # -------------------------------------------------------------
 class MouseInputSource(InputSource):
-    """マウスの動きをシミュレーション座標として提供するクラス"""
+    """マウスの動きを [x, y, size] のデータとして提供するクラス"""
     def __init__(self, view_to_model_func):
         self.view_to_model = view_to_model_func
 
-    def get_human_positions(self) -> list[np.ndarray]:
+    def get_detected_objects(self) -> np.ndarray:
         mouse_pos_view = pygame.mouse.get_pos()
-        # マウスがデバッグウィンドウ内にある場合のみ座標を返す
-        if 0 <= mouse_pos_view[0] < 800: # view_widthをハードコーディング
+        if 0 <= mouse_pos_view[0] < 800: # view_width
             model_pos = self.view_to_model(mouse_pos_view)
-            return [model_pos]
-        return []
+            # [x, y, size] の形式で返す (sizeはデフォルト値)
+            return np.array([[model_pos[0], model_pos[1], 1.0]])
+        return np.empty((0, 3)) # 何も検出しなかった場合は空の配列
 
 # -------------------------------------------------------------
-# 3. LiDAR(UDP)用の具体的な実装（LiDAR用プラグ）
-#    あなたの指摘通り、座標変換は責務外。受信に徹する。
+# 3. LiDAR(UDP)用の具体的な実装
 # -------------------------------------------------------------
 class UdpInputSource(InputSource):
-    """UDPで受信した座標を提供するクラス"""
+    """UDPで受信した [x, y, size] のデータを提供するクラス"""
     def __init__(self, host='0.0.0.0', port=9999):
-        self.latest_positions = []
+        self.latest_data = np.empty((0, 3))
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((host, port))
         
-        # 受信スレッドを開始
         self.running = True
         self.thread = threading.Thread(target=self._listen, daemon=True)
         self.thread.start()
-        print(f"Listening for HUMAN POSITIONS on UDP port {port}...")
+        print(f"Listening for OBJECT DATA on UDP port {port}...")
 
     def _listen(self):
         while self.running:
-            data, _ = self.sock.recvfrom(1024)
-            # 受信したバイト列をfloat32のN行2列の配列に変換
             try:
-                positions = np.frombuffer(data, dtype=np.float32).reshape(-1, 2)
-                self.latest_positions = list(positions)
+                data, _ = self.sock.recvfrom(2048)
+                # 受信データを [x, y, size] のN行3列の配列に変換
+                self.latest_data = np.frombuffer(data, dtype=np.float32).reshape(-1, 3)
             except ValueError:
-                print("Warning: Received malformed UDP packet.")
-                self.latest_positions = []
+                print("Warning: Received malformed UDP packet. Clearing data.")
+                self.latest_data = np.empty((0, 3))
+            except socket.error:
+                if self.running: break # Shutdown中にエラーが出ることがある
 
-    def get_human_positions(self) -> list[np.ndarray]:
-        return self.latest_positions
+    def get_detected_objects(self) -> np.ndarray:
+        return self.latest_data
     
     def shutdown(self):
         self.running = False
         self.sock.close()
+        self.thread.join()
         print("UDP Input source shut down.")
