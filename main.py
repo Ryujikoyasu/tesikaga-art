@@ -4,7 +4,8 @@ import numpy as np
 import os
 import yaml
 from src.config import BIRD_PARAMS
-from src.objects import Human, Bird
+from src.objects import Bird
+from src.input_source import MouseInputSource # MouseInputSourceをインポート
 from src.simulation import World
 from src.renderer import Renderer
 from src.coordinates import CoordinateSystem
@@ -54,7 +55,9 @@ def main():
         print(f"FATAL: Could not load LED data from '{LED_FILE_PATH}'. Error: {e}")
         return
     
-    human = Human()
+    # Input Source
+    input_source = MouseInputSource(coord_system.view_to_model)
+
     bird_objects = [Bird(bird_id, BIRD_PARAMS[bird_id], CHIRP_PROBABILITY_PER_FRAME) for bird_id in BIRDS_TO_SIMULATE if bird_id in BIRD_PARAMS]
     world = World(MODEL_RADIUS, bird_objects)
     
@@ -69,9 +72,8 @@ def main():
                 running = False
 
         # Update simulation state
-        mouse_pos_model = coord_system.view_to_model(pygame.mouse.get_pos())
-        human.update_position(mouse_pos_model)
-        world.update_humans([human.position]) # Simulate a list with one human
+        detected_objects = input_source.get_detected_objects()
+        world.update_humans(detected_objects)
         world.update(pixel_model_positions)
 
         # Render the current state to the screen
