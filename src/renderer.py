@@ -22,6 +22,10 @@ class Renderer:
         self.min_brightness_falloff = settings.get('min_brightness_falloff', 0.3)
         self.debug_min_bird_size_px = 6.0
 
+        # Font for debug text
+        pygame.font.init()
+        self.font = pygame.font.SysFont('Arial', 16)
+
         # Coordinate system
         self.coord_system = coord_system
         
@@ -124,6 +128,17 @@ class Renderer:
             pygame.draw.circle(self.debug_surface, bird.accent_color, pos_px, size_px * 0.4)
         for human in world.humans:
             pygame.draw.circle(self.debug_surface, (255, 255, 255), self.coord_system.model_to_view(human.position), 10)
+
+            # Display human data as text
+            text_lines = [
+                f"Pos: ({human.position[0]:.2f}, {human.position[1]:.2f})",
+                f"Vel: ({human.velocity[0]:.2f}, {human.velocity[1]:.2f})",
+                f"Size: {human.size:.2f}",
+                f"Size Change: {human.size_change:.2f}"
+            ]
+            for i, line in enumerate(text_lines):
+                text_surface = self.font.render(line, True, (255, 255, 255))
+                self.debug_surface.blit(text_surface, (5, 5 + i * 20)) # 固定位置（左上）に表示
 
         # 3. Draw the Artistic View
         self.art_surface.blit(self.static_art_bg, (0, 0))
