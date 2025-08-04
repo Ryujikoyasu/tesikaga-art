@@ -7,7 +7,7 @@
 # Mac: /dev/tty.usbmodemXXXX or /dev/tty.usbserial-XXXX
 # Linux: /dev/ttyACM0 or /dev/ttyUSB0
 # Windows: COM3
-serial_port: "/dev/tty.usbmodem1101"
+serial_port: "/dev/tty.usbmodem101"
 baud_rate: 921600
 
 # --- Visual & Simulation Parameters ---
@@ -20,15 +20,15 @@ model_diameter: 5.0
 
 # --- Hardware & Layout ---
 # Name of the LED position file in assets/data/
-led_layout_file: "led_positions_4_segments.csv"
+led_layout_file: "led_positions_1_segments.csv"
 # Total number of physical LEDs in the full installation
-num_leds: 1200
+num_leds: 300
 
 # --- Hardware Test Mode ---
 # When true, main_real.py will only use a subset of LEDs for testing.
 # This allows you to test with a shorter strip without changing the main num_leds.
 enable_test_mode: true
-test_strip_led_count: 1200 # Number of LEDs on your physical test strip
+test_strip_led_count: 300 # Number of LEDs on your physical test strip
 
 # ===================================================================
 # === INPUT SOURCE CONFIGURATION
@@ -38,7 +38,7 @@ input_source_type: "mouse"
 
 # UDPを使用する場合の設定
 udp_settings:
-  host: "0.0.0.0"
+  host: "127.0.0.1"
   port: 9999
 
 # --- AI & Visual Tuning ---
@@ -52,11 +52,11 @@ ai_tuning:
 # Names must match the keys in src/config_structure.py
 # You can repeat names to have multiple birds of the same species.
 birds_to_simulate:
-  - ojirowasi
-  - shimafukuro
-  - tancho
-  - oohakucho
-  - ooluri
-  - kumagera
-  - nogoma
+  # - ojirowasi
+  # - shimafukuro
+  # - tancho
+  # - oohakucho
+  # - ooluri
+  # - kumagera
+  # - nogoma
   - benimashiko

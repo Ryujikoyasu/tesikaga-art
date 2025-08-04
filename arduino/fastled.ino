@@ -17,11 +17,11 @@
  // --- LED Strip Hardware Settings ---
  // あなたがArduinoに接続している物理的なLEDの総数
  // テスト用ストリップなら 100, 400 など。本番環境なら 900, 1200 など。
- #define NUM_PHYSICAL_LEDS    900      
+ #define NUM_PHYSICAL_LEDS    300      
  
  #define DATA_PIN             6        // Arduinoのデータピン番号
  #define LED_TYPE             WS2811   // LEDストリップのチップセット
- #define COLOR_ORDER          GRB      // 色の順番 (一般的ですが、もし赤と緑が逆ならRGBに変更)
+ #define COLOR_ORDER          BRG      
  
  // --- Communication Settings ---
  // Pythonのsettings.yamlにある値と完全に一致させる必要があります
@@ -33,7 +33,8 @@
  // =========================================================================
  
  // 制御可能なピクセル数を計算 (1ピクセル = 3 LED)
- const int NUM_PIXELS = (NUM_PHYSICAL_LEDS + 2) / 3;
+//  const int NUM_PIXELS = (NUM_PHYSICAL_LEDS + 2) / 3;
+ const int NUM_PIXELS = NUM_PHYSICAL_LEDS;
  
  // FastLEDライブラリ用のLED配列 (物理LED数で確保)
  CRGB leds[NUM_PHYSICAL_LEDS];
@@ -51,7 +52,7 @@
        .setCorrection(TypicalSMD5050); // 標準的な補正
  
    // 明るさの最大値を設定 (安全のため、最初は低い値 (例: 80) を推奨)
-   FastLED.setBrightness(128); 
+   FastLED.setBrightness(80); 
    
    // 起動時にLEDを一度クリア
    FastLED.clear();
