@@ -152,24 +152,27 @@ class Bird:
             elif self.state == "CHIRPING":
                 self.velocity *= 0.8
                 self.chirp_playback_time += 1.0 / 60.0
-                self.current_brightness = 0.0
-                active_pattern = self.chirp_patterns.get(self.active_pattern_key, [])
-                for i in range(len(active_pattern) - 1):
-                    start_time, start_bright = active_pattern[i]; end_time, end_bright = active_pattern[i+1]
-                    if start_time <= self.chirp_playback_time < end_time:
-                        time_delta = end_time - start_time
-                        progress = (self.chirp_playback_time - start_time) / time_delta if time_delta > 0 else 0
-                        self.current_brightness = start_bright + (end_bright - start_bright) * progress
-                        break
-                if self.action_timer <= 0: self.state = "IDLE"; self.current_brightness = 0.0; self.active_pattern_key = None
+                # 輝度計算はレンダラーに任せるので、ここでは時間経過のみを管理
+                if self.action_timer <= 0:
+                    self.state = "IDLE"
+                    self.current_brightness = 0.0 # 点滅終了時に輝度をリセット
+                    self.active_pattern_key = None
+
         else: # 人間が誰もいない場合
             if self.state in ["FLEEING", "CAUTION", "CURIOUS"]:
-                self.state = "IDLE" # アイドル状態に戻す
+                self.state = "IDLE"
 
+        # --- 3. 状態に基づいた輝度と鳴き声の更新 ---
+        if self.state == "IDLE":
+            # IDLE状態でも微かに光るように、基本の輝度を設定
+            self.current_brightness = 0.2 
+        
+        # ランダムなタイミングで鳴き声を開始
         if self.state in ["IDLE", "FORAGING"] and self.action_timer > 0 and random.random() < self.chirp_probability:
             self.active_pattern_key = 'drumming' if self.id == 'kumagera' else 'default'
             if self.active_pattern_key in self.chirp_patterns:
                 self.state = "CHIRPING"
                 self.action_timer = int(self.chirp_patterns[self.active_pattern_key][-1][0] * 60)
                 self.chirp_playback_time = 0.0
-                if self.active_pattern_key in self.sounds: self.sounds[self.active_pattern_key].play()
+                if self.active_pattern_key in self.sounds:
+                    self.sounds[self.active_pattern_key].play()

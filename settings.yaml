@@ -27,7 +27,7 @@ num_leds: 300
 # --- Hardware Test Mode ---
 # When true, main_real.py will only use a subset of LEDs for testing.
 # This allows you to test with a shorter strip without changing the main num_leds.
-enable_test_mode: true
+enable_test_mode: false
 test_strip_led_count: 300 # Number of LEDs on your physical test strip
 
 # ===================================================================
@@ -60,3 +60,4 @@ birds_to_simulate:
   # - kumagera
   # - nogoma
   - benimashiko
+

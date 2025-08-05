@@ -7,17 +7,18 @@ BIRD_PARAMS = {
         'ooluri': {
             'name_jp': 'オオルリ',
             'base_color': [
-                20,
-                100,
-                240
+                48,
+                46,
+                90
             ],
             'accent_color': [
-                240,
-                240,
-                255
+                0,
+                5,
+                196
             ],
             'base_pixel_count': 4,
             'size': 1.0,
+            'pixel_personal_space': 5,
             'color_pattern': [
                 ['b', 1],
                 ['a', 2],
@@ -80,16 +81,17 @@ BIRD_PARAMS = {
             'name_jp': 'オオハクチョウ',
             'base_color': [
                 255,
-                250,
-                240
+                229,
+                53
             ],
             'accent_color': [
                 255,
-                220,
+                200,
                 0
             ],
             'base_pixel_count': 6,
             'size': 4.0,
+            'pixel_personal_space': 5,
             'color_pattern': [
                 ['b', 2],
                 ['a', 2],
@@ -151,17 +153,18 @@ BIRD_PARAMS = {
         'ojirowasi': {
             'name_jp': 'オジロワシ',
             'base_color': [
-                240,
-                220,
-                180
+                16,
+                156,
+                145
             ],
             'accent_color': [
-                255,
-                215,
-                0
+                221,
+                134,
+                7
             ],
             'base_pixel_count': 6,
             'size': 5.0,
+            'pixel_personal_space': 5,
             'color_pattern': [
                 ['b', 2],
                 ['a', 2],
@@ -234,21 +237,20 @@ BIRD_PARAMS = {
         'shimafukuro': {
             'name_jp': 'シマフクロウ',
             'base_color': [
-                70,
-                130,
-                180
+                4,
+                4,
+                15
             ],
             'accent_color': [
+                57,
                 255,
-                255,
-                100
+                62
             ],
             'base_pixel_count': 5,
             'size': 4.5,
+            'pixel_personal_space': 5,
             'color_pattern': [
-                ['b', 2],
-                ['a', 1],
-                ['b', 2]
+                ['a', 5]
             ],
             'chirp_color_pattern': [
                 ['a', 5]
@@ -285,21 +287,20 @@ BIRD_PARAMS = {
         'kumagera': {
             'name_jp': 'クマゲラ',
             'base_color': [
-                35,
-                35,
-                50
+                3,
+                8,
+                2
             ],
             'accent_color': [
-                255,
-                0,
+                157,
+                1,
                 0
             ],
             'base_pixel_count': 3,
             'size': 1.5,
+            'pixel_personal_space': 5,
             'color_pattern': [
-                ['b', 1],
-                ['a', 1],
-                ['b', 1]
+                ['a', 3]
             ],
             'chirp_color_pattern': [
                 ['a', 3]
@@ -395,12 +396,13 @@ BIRD_PARAMS = {
                 255
             ],
             'accent_color': [
-                220,
+                255,
                 0,
                 0
             ],
             'base_pixel_count': 5,
             'size': 3.5,
+            'pixel_personal_space': 5,
             'color_pattern': [
                 ['b', 2],
                 ['a', 1],
@@ -472,17 +474,18 @@ BIRD_PARAMS = {
         'nogoma': {
             'name_jp': 'ノゴマ',
             'base_color': [
-                140,
-                115,
-                90
+                21,
+                9,
+                0
             ],
             'accent_color': [
-                255,
-                10,
-                10
+                164,
+                37,
+                0
             ],
             'base_pixel_count': 3,
             'size': 0.8,
+            'pixel_personal_space': 5,
             'color_pattern': [
                 ['b', 1],
                 ['a', 1],
@@ -534,17 +537,18 @@ BIRD_PARAMS = {
         'benimashiko': {
             'name_jp': 'ベニマシコ',
             'base_color': [
-                190,
-                50,
-                90
+                25,
+                9,
+                5
             ],
             'accent_color': [
                 230,
-                150,
-                170
+                0,
+                13
             ],
             'base_pixel_count': 3,
             'size': 0.9,
+            'pixel_personal_space': 5,
             'color_pattern': [
                 ['a', 1],
                 ['b', 1],

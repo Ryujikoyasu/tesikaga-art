@@ -72,10 +72,33 @@ class Renderer:
             center_idx = pixel_centers[i]
             _, num_pixels_pattern = bird.get_current_light_pattern()
             spread = num_pixels_pattern // 2
-            
-            brightness = 0.6
-            if bird.state == "CHIRPING": brightness = bird.current_brightness
-            elif bird.state == "FLEEING": brightness = 1.0
+
+            # 状態に基づいて基本輝度を決定
+            brightness = 0.0 # デフォルトは消灯
+            if bird.state == "IDLE":
+                brightness = bird.current_brightness # IDLEでも微かに光る
+            elif bird.state == "FLEEING":
+                brightness = 1.0
+            elif bird.state == "CAUTION":
+                brightness = 0.4
+            elif bird.state == "CURIOUS":
+                brightness = 0.6
+            elif bird.state == "EXPLORING" or bird.state == "FORAGING":
+                brightness = 0.5
+            elif bird.state == "CHIRPING":
+                # CHIRPING時の輝度計算
+                brightness = 0.0 # デフォルトは0
+                active_pattern = bird.chirp_patterns.get(bird.active_pattern_key, [])
+                if active_pattern:
+                    # パターンから現在の輝度を補間して計算
+                    for i in range(len(active_pattern) - 1):
+                        start_time, start_bright = active_pattern[i]
+                        end_time, end_bright = active_pattern[i+1]
+                        if start_time <= bird.chirp_playback_time < end_time:
+                            time_delta = end_time - start_time
+                            progress = (bird.chirp_playback_time - start_time) / time_delta if time_delta > 0 else 0
+                            brightness = start_bright + (end_bright - start_bright) * progress
+                            break
 
             for j in range(-spread, spread + 1):
                 pixel_idx = center_idx + j
