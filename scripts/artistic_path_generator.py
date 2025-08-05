@@ -309,7 +309,7 @@ class InteractivePathEditor:
 if __name__ == "__main__":
     # --- User Configuration ---
     # Set the desired number of line segments.
-    NUM_SEGMENTS = 3  # <-- CHANGE THIS VALUE (e.g., 3, 4, 5, etc.)
+    NUM_SEGMENTS = 2  # <-- CHANGE THIS VALUE (e.g., 3, 4, 5, etc.)
     # --------------------------
 
     print("--- Interactive Path Builder ---")

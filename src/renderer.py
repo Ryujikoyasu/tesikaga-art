@@ -114,7 +114,7 @@ class Renderer:
         self.final_pixel_colors.fill(0)
         for pixel_idx in range(self.num_pixels):
             bird_idx = winner_map[pixel_idx]
-            if bird_idx != -1:
+            if bird_idx != -1 and bird_idx < len(world.birds):
                 bird = world.birds[bird_idx]
                 pixel_offset = pixel_idx - pixel_centers[bird_idx]
                 pattern, _ = bird.get_current_light_pattern()
