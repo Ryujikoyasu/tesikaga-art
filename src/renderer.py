@@ -7,7 +7,7 @@ class Renderer:
     """
     Handles all rendering tasks for the simulation, including debug and artistic views.
     """
-    def __init__(self, settings, pixel_model_positions, coord_system: CoordinateSystem):
+    def __init__(self, settings, pixel_model_positions, coord_system: CoordinateSystem, lidar_pose_data=None):
         """
         Initializes the Renderer with necessary settings and pre-calculated positions.
         
@@ -21,6 +21,7 @@ class Renderer:
         self.view_height = settings.get('view_height', 800)
         self.min_brightness_falloff = settings.get('min_brightness_falloff', 0.3)
         self.debug_min_bird_size_px = 6.0
+        self.lidar_pose_data = lidar_pose_data # 姿勢データを保存
 
         # Font for debug text
         pygame.font.init()
@@ -135,6 +136,36 @@ class Renderer:
         """Returns the latest calculated pixel colors."""
         return self.final_pixel_colors
 
+    def _draw_lidar_pose(self, surface):
+        """デバッグ画面にLiDARの姿勢を描画する"""
+        if not self.lidar_pose_data:
+            return
+
+        # --- 1. LiDARのローカル座標で形状を定義 (前方がX軸プラス方向) ---
+        #    - A: 後方左 (-0.1, -0.1)
+        #    - B: 後方右 (-0.1, 0.1)
+        #    - C: 前方先端 (0.15, 0)
+        shape_local = np.array([
+            [-0.1, -0.1],
+            [-0.1,  0.1],
+            [ 0.15, 0.0]
+        ])
+
+        # --- 2. 姿勢データを使って、形状をワールド座標に変換 ---
+        pos = np.array(self.lidar_pose_data['position_xy'])
+        theta_rad = np.deg2rad(self.lidar_pose_data['rotation_z_deg'])
+        c, s = np.cos(theta_rad), np.sin(theta_rad)
+        rotation_matrix = np.array([[c, -s], [s, c]])
+
+        shape_world = np.array([pos + rotation_matrix @ p for p in shape_local])
+
+        # --- 3. ワールド座標をビュー（ピクセル）座標に変換 ---
+        shape_view = np.array([self.coord_system.model_to_view(p) for p in shape_world])
+
+        # --- 4. 描画 ---
+        pygame.draw.polygon(surface, (255, 255, 0), shape_view) # 黄色い三角形で描画
+        pygame.draw.polygon(surface, (0, 0, 0), shape_view, 2) # 黒い縁取り
+
     def render(self, screen, world):
         """
         Calculates all colors and draws the full scene to the provided screen.
@@ -144,6 +175,10 @@ class Renderer:
 
         # 2. Draw the Debug View
         self.debug_surface.blit(self.static_debug_bg, (0, 0))
+        
+        # ★LiDARの描画処理をここに追加
+        self._draw_lidar_pose(self.debug_surface)
+
         for bird in world.birds:
             pos_px = self.coord_system.model_to_view(bird.position)
             size_px = max(bird.params['size'] * 2.5, self.debug_min_bird_size_px)

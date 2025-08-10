@@ -93,7 +93,25 @@ def main_realtime():
     bird_objects = [Bird(bird_id, BIRD_PARAMS[bird_id], CHIRP_PROBABILITY_PER_FRAME) for bird_id in BIRDS_TO_SIMULATE if bird_id in BIRD_PARAMS]
     world = World(MODEL_RADIUS, bird_objects)
     
-    renderer = Renderer(settings, pixel_model_positions, coord_system)
+    # --- ★LiDARの姿勢情報を読み込む ---
+    lidar_pose_data = None
+    transform_matrix_path = settings.get('transform_matrix_path')
+    if transform_matrix_path:
+        try:
+            # settings.yamlからのパスが相対パスの場合も考慮し、プロジェクトルートからの絶対パスに変換
+            TRANSFORM_PATH = os.path.join(PROJECT_ROOT, transform_matrix_path)
+            with open(TRANSFORM_PATH, 'r') as f:
+                transform_data = yaml.safe_load(f)
+                if 'lidar_pose' in transform_data:
+                    lidar_pose_data = transform_data['lidar_pose']
+                    print(f"Loaded LiDAR pose data for visualization from '{TRANSFORM_PATH}'.")
+        except Exception as e:
+            print(f"Warning: Could not load LiDAR pose data from '{TRANSFORM_PATH}'. Visualization will be skipped. Error: {e}")
+    else:
+        print("Info: 'transform_matrix_path' not found in settings.yaml. Skipping LiDAR pose visualization.")
+
+    # Rendererの初期化時に、読み込んだ姿勢データを渡す
+    renderer = Renderer(settings, pixel_model_positions, coord_system, lidar_pose_data)
     
     print("Starting real-time simulation and LED output...")
     running = True
