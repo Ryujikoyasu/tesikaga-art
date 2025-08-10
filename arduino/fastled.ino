@@ -8,11 +8,11 @@
 
 // --- LED Strip Hardware Settings ---
 // あなたがArduinoに接続している物理的なLEDの総数
-#define NUM_PHYSICAL_LEDS    600      // ★ Pythonのsettings.yamlの 'num_leds' と一致させる
+#define NUM_PHYSICAL_LEDS    1200      // ★ Pythonのsettings.yamlの 'num_leds' と一致させる
 
 #define DATA_PIN             6        // Arduinoのデータピン番号
 #define LED_TYPE             WS2811   // LEDストリップのチップセット
-#define COLOR_ORDER          GRB      // ★お使いのLEDに合わせてBRG, GRBなどを設定
+#define COLOR_ORDER          BRG      // ★お使いのLEDに合わせてBRG, GRBなどを設定
 
 // --- Communication Settings ---
 // Pythonのsettings.yamlにある値と完全に一致させる必要があります

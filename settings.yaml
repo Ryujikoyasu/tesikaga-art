@@ -65,5 +65,6 @@ birds_to_simulate:
   - nogoma
   - benimashiko
 
+
 # --- ★鳥の全体的な輝度設定 (0.0から1.0) ---
 global_brightness: 0.8
