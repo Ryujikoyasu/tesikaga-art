@@ -23,6 +23,9 @@ class Renderer:
         self.debug_min_bird_size_px = 6.0
         self.lidar_pose_data = lidar_pose_data # 姿勢データを保存
 
+        # --- 全体的な輝度設定 ---
+        self.global_brightness = settings.get('global_brightness', 0.2)
+
         # Font for debug text
         pygame.font.init()
         self.font = pygame.font.SysFont('Arial', 16)
@@ -71,23 +74,13 @@ class Renderer:
 
         for i, bird in enumerate(world.birds):
             center_idx = pixel_centers[i]
-            _, num_pixels_pattern = bird.get_current_light_pattern()
-            spread = num_pixels_pattern // 2
+            
+            # 1. パターンと基本サイズを取得
+            color_pattern, num_pixels_pattern = bird.get_current_light_pattern()
 
-            # 状態に基づいて基本輝度を決定
-            brightness = 0.0 # デフォルトは消灯
-            if bird.state == "IDLE":
-                brightness = bird.current_brightness # IDLEでも微かに光る
-            elif bird.state == "FLEEING":
-                brightness = 1.0
-            elif bird.state == "CAUTION":
-                brightness = 0.4
-            elif bird.state == "CURIOUS":
-                brightness = 0.6
-            elif bird.state == "EXPLORING" or bird.state == "FORAGING":
-                brightness = 0.5
-            elif bird.state == "CHIRPING":
-                # CHIRPING時の輝度計算
+            # 2. 輝度を決定 (通常時はグローバル設定値、CHIRPING時は動的計算)
+            brightness = self.global_brightness
+            if bird.state == "CHIRPING":
                 brightness = 0.0 # デフォルトは0
                 active_pattern = bird.chirp_patterns.get(bird.active_pattern_key, [])
                 if active_pattern:
@@ -100,6 +93,12 @@ class Renderer:
                             progress = (bird.chirp_playback_time - start_time) / time_delta if time_delta > 0 else 0
                             brightness = start_bright + (end_bright - start_bright) * progress
                             break
+                
+                # 輝度に基づいて描画サイズを動的に変更
+                num_pixels_pattern = int(num_pixels_pattern * (1 + brightness * bird.params['size'] * 0.5))
+
+            # 3. 光の広がりを計算
+            spread = num_pixels_pattern // 2
 
             for j in range(-spread, spread + 1):
                 pixel_idx = center_idx + j

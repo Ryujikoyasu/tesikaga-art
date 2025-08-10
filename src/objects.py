@@ -42,10 +42,10 @@ class Bird:
         self.target_position = self.position
         self.state = "IDLE"
         self.action_timer = random.randint(180, 400)
+        self.current_brightness = 1.0 # Initialize current_brightness
         
         # Playback tracking
         self.chirp_playback_time = 0.0
-        self.current_brightness = 0.0
         self.active_pattern_key = None 
 
         # Load sounds
@@ -59,10 +59,9 @@ class Bird:
             print(f"ERROR loading sound for {self.id} at '{abs_path}': {e}")
 
     def get_current_light_pattern(self):
-        """Returns the appropriate light pattern and pixel count based on the current state."""
+        """Returns the appropriate light pattern and base pixel count based on the current state."""
         if self.state == "CHIRPING":
-            dynamic_pixel_count = int(self.base_pixel_count * (1 + self.current_brightness * self.params['size'] * 0.5))
-            return self.chirp_color_pattern, dynamic_pixel_count
+            return self.chirp_color_pattern, self.base_pixel_count
         return self.color_pattern, self.base_pixel_count
 
     def update(self, humans, all_birds, my_index, all_pixel_centers):
@@ -155,18 +154,12 @@ class Bird:
                 # 輝度計算はレンダラーに任せるので、ここでは時間経過のみを管理
                 if self.action_timer <= 0:
                     self.state = "IDLE"
-                    self.current_brightness = 0.0 # 点滅終了時に輝度をリセット
                     self.active_pattern_key = None
 
         else: # 人間が誰もいない場合
             if self.state in ["FLEEING", "CAUTION", "CURIOUS"]:
                 self.state = "IDLE"
 
-        # --- 3. 状態に基づいた輝度と鳴き声の更新 ---
-        if self.state == "IDLE":
-            # IDLE状態でも微かに光るように、基本の輝度を設定
-            self.current_brightness = 0.2 
-        
         # ランダムなタイミングで鳴き声を開始
         if self.state in ["IDLE", "FORAGING"] and self.action_timer > 0 and random.random() < self.chirp_probability:
             self.active_pattern_key = 'drumming' if self.id == 'kumagera' else 'default'

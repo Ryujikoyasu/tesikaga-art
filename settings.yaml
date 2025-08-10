@@ -7,7 +7,7 @@
 # Mac: /dev/tty.usbmodemXXXX or /dev/tty.usbserial-XXXX
 # Linux: /dev/ttyACM0 or /dev/ttyUSB0
 # Windows: COM3
-serial_port: "/dev/tty.usbmodem101"
+serial_port: "/dev/tty.usbmodem1101"
 baud_rate: 921600
 
 # --- Visual & Simulation Parameters ---
@@ -41,10 +41,14 @@ udp_settings:
   host: "127.0.0.1"
   port: 9999
 
+ # LiDARの姿勢情報ファイルへのパス (プロジェクトルートからの相対パス)
+transform_matrix_path: "transform_matrix.yaml"
+
+
 # --- AI & Visual Tuning ---
 # Fine-tuning parameters for bird behavior and simulation visuals.
 ai_tuning:
-  chirp_probability_per_frame: 0.002
+  chirp_probability_per_frame: 0.004
   min_brightness_falloff: 0.4 # 40% brightness guarantee for falloff
 
 # --- Simulation Cast ---
@@ -60,3 +64,6 @@ birds_to_simulate:
   - kumagera
   - nogoma
   - benimashiko
+
+# --- ★鳥の全体的な輝度設定 (0.0から1.0) ---
+global_brightness: 0.8
