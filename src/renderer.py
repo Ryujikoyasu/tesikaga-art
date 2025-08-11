@@ -91,9 +91,17 @@ class Renderer:
                 active_pattern = bird.chirp_patterns.get(bird.active_pattern_key, [])
                 if active_pattern:
                     # パターンから現在の輝度を補間して計算
-                    for i in range(len(active_pattern) - 1):
-                        start_time, start_bright = active_pattern[i]
-                        end_time, end_bright = active_pattern[i+1]
+                    # (バグ修正1: ループ変数を i -> pat_idx に変更)
+                    # (バグ修正2: ループ範囲を len-1 -> len にし、最後のキーフレームまでチェック)
+                    for pat_idx in range(len(active_pattern)):
+                        # 最後のキーフレームに達したら、その輝度を使いループを抜ける
+                        if pat_idx == len(active_pattern) - 1:
+                            brightness = active_pattern[pat_idx][1]
+                            break
+
+                        start_time, start_bright = active_pattern[pat_idx]
+                        end_time, end_bright = active_pattern[pat_idx+1]
+                        
                         if start_time <= bird.chirp_playback_time < end_time:
                             time_delta = end_time - start_time
                             progress = (bird.chirp_playback_time - start_time) / time_delta if time_delta > 0 else 0
