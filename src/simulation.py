@@ -81,15 +81,18 @@ class World:
 
     def _apply_physics_and_constraints(self, bird):
         """Applies world rules (boundaries, physics) to a single bird."""
+        # If the bird is chirping, it should be completely stationary. No physics apply.
+        if bird.state == "CHIRPING":
+            return
+
         # 1. Apply soft boundary repulsion
         dist_from_center = np.linalg.norm(bird.position)
         if dist_from_center > self.model_radius * 0.8:
             repulsion_strength = (dist_from_center - self.model_radius * 0.8) / (self.model_radius * 0.2)
             bird.velocity += (-bird.position / dist_from_center) * repulsion_strength * 0.01
         
-        # 2. Update position based on velocity, but only if the bird is not chirping.
-        if bird.state != "CHIRPING":
-            bird.position += bird.velocity
+        # 2. Update position based on velocity
+        bird.position += bird.velocity
 
         # 3. Apply hard boundary enforcement
         dist_from_center_after_move = np.linalg.norm(bird.position)

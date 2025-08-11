@@ -101,21 +101,23 @@ class Bird:
 
         # --- 2. 人間とのインタラクション(2D)とステートマシン ---
         if nearest_human: # 最も近い人間が存在する場合のみ、インタラクションを考慮
-            # 新しいロジック：速度や分散に基づく状態変化
-            if np.linalg.norm(nearest_human.velocity) > 0.5: # 速度が速い人間には、より遠くから逃げる
-                self.state = "FLEEING"
-            
-            # 手を広げた（サイズが急に大きくなった）ら、特別な鳴き声を出す
-            if nearest_human.size_change > 0.5: # THRESHOLD_SIZE_CHANGE
-                # TODO: ここで特別な鳴き声の再生や状態変化を実装
-                pass # 例: self.state = "SURPRISED_CHIRP"
+            # 鳴いている最中は、他の状態に遷移させない
+            if self.state != 'CHIRPING':
+                # 新しいロジック：速度や分散に基づく状態変化
+                if np.linalg.norm(nearest_human.velocity) > 0.5: # 速度が速い人間には、より遠くから逃げる
+                    self.state = "FLEEING"
+                
+                # 手を広げた（サイズが急に大きくなった）ら、特別な鳴き声を出す
+                if nearest_human.size_change > 0.5: # THRESHOLD_SIZE_CHANGE
+                    # TODO: ここで特別な鳴き声の再生や状態変化を実装
+                    pass # 例: self.state = "SURPRISED_CHIRP"
 
-            if self.state not in ["CHIRPING", "FLEEING"]:
-                if min_dist_to_human < self.flee_distance: self.state = "FLEEING"
-                elif min_dist_to_human < self.caution_distance: self.state = "CAUTION"
-                # 人間の速度が非常に遅い（ほぼ静止）場合に、好奇心を示す
-                elif np.linalg.norm(nearest_human.velocity) < 0.05 and random.random() < self.curiosity: 
-                    self.state = "CURIOUS"
+                if self.state not in ["FLEEING"]: # CHIRPINGは上のifで除外済み
+                    if min_dist_to_human < self.flee_distance: self.state = "FLEEING"
+                    elif min_dist_to_human < self.caution_distance: self.state = "CAUTION"
+                    # 人間の速度が非常に遅い（ほぼ静止）場合に、好奇心を示す
+                    elif np.linalg.norm(nearest_human.velocity) < 0.05 and random.random() < self.curiosity: 
+                        self.state = "CURIOUS"
             
             self.action_timer -= 1
 
@@ -149,7 +151,7 @@ class Bird:
                 self.velocity *= 0.8
                 if min_dist_to_human > self.caution_distance * 1.2: self.state = "IDLE"
             elif self.state == "CHIRPING":
-                self.velocity *= 0.8
+                # 物理計算はsimulation.py側で完全にスキップされるので、ここでは何もしない
                 self.chirp_playback_time += 1.0 / 60.0
                 # 輝度計算はレンダラーに任せるので、ここでは時間経過のみを管理
                 if self.action_timer <= 0:

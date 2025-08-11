@@ -48,7 +48,7 @@ transform_matrix_path: "transform_matrix.yaml"
 # --- AI & Visual Tuning ---
 # Fine-tuning parameters for bird behavior and simulation visuals.
 ai_tuning:
-  chirp_probability_per_frame: 0.004
+  chirp_probability_per_frame: 0.01
   min_brightness_falloff: 0.4 # 40% brightness guarantee for falloff
 
 # --- Simulation Cast ---
@@ -56,15 +56,49 @@ ai_tuning:
 # Names must match the keys in src/config_structure.py
 # You can repeat names to have multiple birds of the same species.
 birds_to_simulate:
-  - ojirowasi
-  - shimafukuro
-  - tancho
-  - oohakucho
-  - ooluri
-  - kumagera
+  # - ojirowasi
+  # - shimafukuro
+  # - tancho
+  # - oohakucho
+  # - ooluri
+  # - kumagera
+  # - nogoma
+  # - benimashiko
   - nogoma
-  - benimashiko
-
-
+  - nogoma
+  - nogoma
+  - nogoma
+  - nogoma
 # --- ★鳥の全体的な輝度設定 (0.0から1.0) ---
 global_brightness: 0.8
+
+# ===================================================================
+# === SIMULATOR VISUALS CONFIGURATION
+# ===================================================================
+# このセクションは、シミュレーター画面上の見た目のみに影響します。
+# 物理的なLEDの色や明るさには一切影響を与えません。
+simulator_visuals:
+  ooluri:
+    base_color: [50, 150, 255]   # 鮮やかな青
+    accent_color: [255, 255, 255] # 白
+  oohakucho:
+    base_color: [255, 255, 255] # 白
+    accent_color: [255, 220, 0]   # 黄色
+  ojirowasi:
+    base_color: [173, 216, 230] # ライトブルー
+    accent_color: [255, 215, 0]   # 金色
+  shimafukuro:
+    base_color: [0, 100, 0]      # ダークグリーン
+    accent_color: [0, 0, 139]      # ダークブルー
+  kumagera:
+    base_color: [20, 20, 20]      # ほぼ黒
+    accent_color: [220, 20, 60]    # ダークレッド（クリムゾン）
+  tancho:
+    base_color: [255, 255, 255] # 白
+    accent_color: [220, 20, 60]    # 赤
+  nogoma:
+    base_color: [139, 69, 19]     # ブラウン (サドルブラウン)
+    accent_color: [255, 140, 0]    # オレンジ
+  benimashiko:
+    base_color: [210, 180, 140] # ブラウン (タン)
+    accent_color: [255, 182, 193] # ピンク

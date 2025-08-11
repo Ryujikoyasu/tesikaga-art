@@ -21,6 +21,12 @@ class Renderer:
         self.view_height = settings.get('view_height', 800)
         self.min_brightness_falloff = settings.get('min_brightness_falloff', 0.3)
         self.debug_min_bird_size_px = 6.0
+
+        # --- ▼ここから追加・修正 ---
+        # シミュレーター用の色設定を読み込む
+        self.simulator_colors = settings.get('simulator_visuals', {})
+        # --- ▲ここまで追加・修正 ---
+
         self.lidar_pose_data = lidar_pose_data # 姿勢データを保存
 
         # --- 全体的な輝度設定 ---
@@ -131,6 +137,12 @@ class Renderer:
                     color = bird.accent_color if color_type == 'a' else bird.base_color
                     self.final_pixel_colors[pixel_idx] = np.clip(color * brightness_map[pixel_idx], 0, 255)
 
+        # --- ▼ここから追加 ---
+        # 描画処理で再利用するために、計算結果をインスタンス変数に保存
+        self.brightness_map = brightness_map
+        self.winner_map = winner_map
+        # --- ▲ここまで追加 ---
+
     def get_final_colors(self):
         """Returns the latest calculated pixel colors."""
         return self.final_pixel_colors
@@ -169,39 +181,63 @@ class Renderer:
         """
         Calculates all colors and draws the full scene to the provided screen.
         """
-        # 1. Calculate the light/color values for this frame
+        # 1. Calculate the light/color values for this frame (This updates self.final_pixel_colors, self.brightness_map, etc.)
         self.calculate_pixel_colors(world)
 
-        # 2. Draw the Debug View
+        # 2. Draw the Debug View (Using Simulator Colors)
         self.debug_surface.blit(self.static_debug_bg, (0, 0))
-        
-        # ★LiDARの描画処理をここに追加
-        self._draw_lidar_pose(self.debug_surface)
-
         for bird in world.birds:
+            # --- ▼ここから修正 ▼ ---
+            # シミュレーター用の色を取得。なければ物理色をフォールバックとして使用。
+            sim_colors = self.simulator_colors.get(bird.id, {})
+            base_color = sim_colors.get('base_color', bird.base_color)
+            accent_color = sim_colors.get('accent_color', bird.accent_color)
+            
             pos_px = self.coord_system.model_to_view(bird.position)
             size_px = max(bird.params['size'] * 2.5, self.debug_min_bird_size_px)
-            pygame.draw.circle(self.debug_surface, bird.base_color, pos_px, size_px)
-            pygame.draw.circle(self.debug_surface, bird.accent_color, pos_px, size_px * 0.4)
+            pygame.draw.circle(self.debug_surface, base_color, pos_px, size_px)
+            pygame.draw.circle(self.debug_surface, accent_color, pos_px, size_px * 0.4)
+            # --- ▲ここまで修正 ▲ ---
+
         for human in world.humans:
             pygame.draw.circle(self.debug_surface, (255, 255, 255), self.coord_system.model_to_view(human.position), 10)
 
-            # Display human data as text
-            text_lines = [
-                f"Pos: ({human.position[0]:.2f}, {human.position[1]:.2f})",
-                f"Vel: ({human.velocity[0]:.2f}, {human.velocity[1]:.2f})",
-                f"Size: {human.size:.2f}",
-                f"Size Change: {human.size_change:.2f}"
-            ]
-            for i, line in enumerate(text_lines):
-                text_surface = self.font.render(line, True, (255, 255, 255))
-                self.debug_surface.blit(text_surface, (5, 5 + i * 20)) # 固定位置（左上）に表示
-
-        # 3. Draw the Artistic View
+        # 3. Draw the Artistic View (Translating physical brightness to simulator colors)
         self.art_surface.blit(self.static_art_bg, (0, 0))
+        # --- ▼ここから全面修正 ▼ ---
         for i, pos_px in enumerate(self.pixel_view_positions):
-            if np.any(self.final_pixel_colors[i] > 5): # Only draw if color is not black
-                pygame.draw.circle(self.art_surface, self.final_pixel_colors[i], pos_px, 4)
+            bird_idx = self.winner_map[i]
+            brightness = self.brightness_map[i]
+
+            # ピクセルが光っている場合のみ描画
+            if bird_idx != -1 and bird_idx < len(world.birds) and brightness > 0.01:
+                bird = world.birds[bird_idx]
+                
+                # シミュレーター用の色を取得
+                sim_colors = self.simulator_colors.get(bird.id, {})
+                sim_base_color = np.array(sim_colors.get('base_color', bird.base_color))
+                sim_accent_color = np.array(sim_colors.get('accent_color', bird.accent_color))
+
+                # 物理LED側で計算された「どの色が使われるべきか」のロジックを再利用
+                pixel_offset = i - np.argmin(np.linalg.norm(self.pixel_model_positions - bird.position, axis=1))
+                pattern, total_pixels = bird.get_current_light_pattern()
+                total_pixels = sum(p[1] for p in pattern)
+
+                color_type_to_use = 'b' # デフォルトはbase_color
+                if total_pixels > 0:
+                    start_pixel = -total_pixels // 2
+                    for p_type, p_count in pattern:
+                        if start_pixel <= pixel_offset < start_pixel + p_count:
+                            color_type_to_use = p_type
+                            break
+                        start_pixel += p_count
+                
+                # 最終的なシミュレーター用の色を決定
+                color_to_use = sim_accent_color if color_type_to_use == 'a' else sim_base_color
+                final_sim_color = np.clip(color_to_use * brightness, 0, 255)
+
+                pygame.draw.circle(self.art_surface, final_sim_color, pos_px, 4)
+        # --- ▲ここまで全面修正 ▲ ---
 
         # 4. Blit both views to the main screen
         screen.blit(self.debug_surface, (0, 0))
