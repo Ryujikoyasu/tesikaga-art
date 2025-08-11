@@ -87,8 +87,9 @@ class World:
             repulsion_strength = (dist_from_center - self.model_radius * 0.8) / (self.model_radius * 0.2)
             bird.velocity += (-bird.position / dist_from_center) * repulsion_strength * 0.01
         
-        # 2. Update position based on velocity
-        bird.position += bird.velocity
+        # 2. Update position based on velocity, but only if the bird is not chirping.
+        if bird.state != "CHIRPING":
+            bird.position += bird.velocity
 
         # 3. Apply hard boundary enforcement
         dist_from_center_after_move = np.linalg.norm(bird.position)

@@ -163,9 +163,10 @@ class Bird:
         # ランダムなタイミングで鳴き声を開始
         if self.state in ["IDLE", "FORAGING"] and self.action_timer > 0 and random.random() < self.chirp_probability:
             self.active_pattern_key = 'drumming' if self.id == 'kumagera' else 'default'
-            if self.active_pattern_key in self.chirp_patterns:
+            if self.active_pattern_key in self.sounds:
+                sound_to_play = self.sounds[self.active_pattern_key]
                 self.state = "CHIRPING"
-                self.action_timer = int(self.chirp_patterns[self.active_pattern_key][-1][0] * 60)
+                # Set the timer to the actual length of the sound file.
+                self.action_timer = int(sound_to_play.get_length() * 60) # Convert seconds to frames
                 self.chirp_playback_time = 0.0
-                if self.active_pattern_key in self.sounds:
-                    self.sounds[self.active_pattern_key].play()
+                sound_to_play.play()

@@ -11,7 +11,9 @@ CONFIG_PATH = os.path.join(PROJECT_ROOT, "src", "config.py")
 def analyze_chirp(file_path):
     try:
         y, sr = librosa.load(file_path)
-        onset_frames = librosa.onset.onset_detect(y=y, sr=sr, units='frames', hop_length=512, backtrack=True, energy=y**2)
+        # By adding a 'delta' parameter, we set a minimum threshold for onset strength.
+        # This should be a more precise way to ignore noise without silencing actual chirps.
+        onset_frames = librosa.onset.onset_detect(y=y, sr=sr, units='frames', hop_length=512, backtrack=True, energy=y**2, delta=0.1)
         onset_times = librosa.frames_to_time(onset_frames, sr=sr, hop_length=512)
         
         if not onset_times.any():
