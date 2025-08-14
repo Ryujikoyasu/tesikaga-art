@@ -3,6 +3,5 @@ __pycache__/
 *.pyc
 
 # Ignore auto-generated config file
-src/config.py
 scripts/__pycache__
 src/__pycache__
