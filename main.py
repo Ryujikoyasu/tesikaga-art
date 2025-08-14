@@ -3,7 +3,7 @@ import pygame
 import numpy as np
 import os
 import yaml
-from src.config import BIRD_PARAMS
+from config.config import BIRD_PARAMS
 from src.objects import Bird
 from src.input_source import MouseInputSource # MouseInputSourceをインポート
 from src.simulation import World
