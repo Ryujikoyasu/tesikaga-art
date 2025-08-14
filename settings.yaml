@@ -42,7 +42,7 @@ udp_settings:
   port: 9999
 
  # LiDARの姿勢情報ファイルへのパス (プロジェクトルートからの相対パス)
-transform_matrix_path: "transform_matrix.yaml"
+transform_matrix_path: "config/calibration_result.yaml"
 
 
 # --- AI & Visual Tuning ---
@@ -53,7 +53,7 @@ ai_tuning:
 
 # --- Simulation Cast ---
 # List of bird IDs to include in the simulation.
-# Names must match the keys in src/config_structure.py
+# Names must match the keys in config/config_structure.py
 # You can repeat names to have multiple birds of the same species.
 birds_to_simulate:
   - ojirowasi

@@ -115,9 +115,9 @@ graph TD
     *   **役割**: **物理法則の書 (The Book of Physics)**
     *   **説明**: <span style="color:red;">【今回の改善点】</span>シミュレーション空間（メートル単位）と表示空間（ピクセル単位）の間の座標変換ルールを**一元管理**します。`Renderer`（描画）と`InputSource`（入力）が同じ「物理法則」を参照することで、システム全体の座標の矛盾を防ぎます。
 
-*   `config.py` / `config_structure.py`
+*   `config/config.py` / `config/config_structure.py`
     *   **役割**: **鳥のDNA (Bird DNA)**
-    *   **説明**: `config_structure.py`は鳥の性格や色などの基本パラメータの原本です。`audio_sync_generator.py`スクリプトがこれを読み込み、音声解析結果と統合して、最終的な`config.py`を**自動生成**します。`config.py`は直接編集してはいけません。
+    *   **説明**: `config/config_structure.py`は鳥の性格や色などの基本パラメータの原本です。`audio_sync_generator.py`スクリプトがこれを読み込み、音声解析結果と統合して、最終的な`config/config.py`を**自動生成**します。`config.py`は直接編集してはいけません。
 
 ---
 
@@ -148,7 +148,7 @@ pip install -r requirements.txt
     ```
 
 2.  **設定ファイルのビルド (初回 or 鳥のパラメータ・音声変更時):**
-    `scripts/audio_sync_generator.py`を実行します。これにより、`src/config_structure.py`と`assets/sounds/`が解析され、最新の**`src/config.py`が自動生成されます。**
+    `scripts/audio_sync_generator.py`を実行します。これにより、`config/config_structure.py`と`assets/sounds/`が解析され、最新の**`config/config.py`が自動生成されます。**
     ```bash
     python scripts/audio_sync_generator.py
     ```

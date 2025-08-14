@@ -7,7 +7,7 @@ import yaml
 from src.serial_handler import SerialWriterThread
 
 # config_structure.pyから直接get_base_config関数をインポート
-from src.config_structure import get_base_config
+from config.config_structure import get_base_config
 
 # --- 設定ファイルの読み込み ---
 try:

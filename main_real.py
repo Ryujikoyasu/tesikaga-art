@@ -3,7 +3,7 @@ import pygame
 import numpy as np
 import os
 import yaml
-from src.config import BIRD_PARAMS
+from config.config import BIRD_PARAMS
 from src.objects import Bird
 from src.simulation import World
 from src.renderer import Renderer
@@ -93,25 +93,30 @@ def main_realtime():
     bird_objects = [Bird(bird_id, BIRD_PARAMS[bird_id], CHIRP_PROBABILITY_PER_FRAME) for bird_id in BIRDS_TO_SIMULATE if bird_id in BIRD_PARAMS]
     world = World(MODEL_RADIUS, bird_objects)
     
-    # --- ★LiDARの姿勢情報を読み込む ---
-    lidar_pose_data = None
-    transform_matrix_path = settings.get('transform_matrix_path')
-    if transform_matrix_path:
+    # --- Load LiDAR pose data ---
+    LIDAR_POSE_WORLD = None
+    calibration_path_setting = settings.get('transform_matrix_path')
+    if calibration_path_setting:
         try:
-            # settings.yamlからのパスが相対パスの場合も考慮し、プロジェクトルートからの絶対パスに変換
-            TRANSFORM_PATH = os.path.join(PROJECT_ROOT, transform_matrix_path)
-            with open(TRANSFORM_PATH, 'r') as f:
-                transform_data = yaml.safe_load(f)
-                if 'lidar_pose' in transform_data:
-                    lidar_pose_data = transform_data['lidar_pose']
-                    print(f"Loaded LiDAR pose data for visualization from '{TRANSFORM_PATH}'.")
-        except Exception as e:
-            print(f"Warning: Could not load LiDAR pose data from '{TRANSFORM_PATH}'. Visualization will be skipped. Error: {e}")
-    else:
-        print("Info: 'transform_matrix_path' not found in settings.yaml. Skipping LiDAR pose visualization.")
+            CALIBRATION_FILE_PATH = os.path.join(PROJECT_ROOT, calibration_path_setting)
+            with open(CALIBRATION_FILE_PATH, 'r') as f:
+                calibration_data = yaml.safe_load(f)
+            LIDAR_POSE_WORLD = calibration_data.get('lidar_pose_world', None)
+            if LIDAR_POSE_WORLD:
+                print(f"Loaded LiDAR pose from '{CALIBRATION_FILE_PATH}'.")
+            else:
+                print(f"WARNING: 'lidar_pose_world' key not found in '{CALIBRATION_FILE_PATH}'.")
 
-    # Rendererの初期化時に、読み込んだ姿勢データを渡す
-    renderer = Renderer(settings, pixel_model_positions, coord_system, lidar_pose_data)
+        except FileNotFoundError:
+            print(f"WARNING: Calibration file not found at '{CALIBRATION_FILE_PATH}'. LiDAR pose will not be drawn.")
+        except Exception as e:
+            print(f"WARNING: Could not load or parse calibration data from '{CALIBRATION_FILE_PATH}'. Error: {e}")
+    else:
+        print("INFO: 'transform_matrix_path' not set in settings.yaml. LiDAR pose will not be drawn.")
+
+
+    # Rendererの初期化時に、LiDARの姿勢情報を渡す
+    renderer = Renderer(settings, pixel_model_positions, coord_system, lidar_pose=LIDAR_POSE_WORLD)
     
     print("Starting real-time simulation and LED output...")
     running = True

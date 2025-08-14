@@ -7,7 +7,7 @@ class Renderer:
     """
     Handles all rendering tasks for the simulation, including debug and artistic views.
     """
-    def __init__(self, settings, pixel_model_positions, coord_system: CoordinateSystem, lidar_pose_data=None):
+    def __init__(self, settings, pixel_model_positions, coord_system: CoordinateSystem, lidar_pose: dict = None):
         """
         Initializes the Renderer with necessary settings and pre-calculated positions.
         
@@ -15,6 +15,7 @@ class Renderer:
             settings (dict): The main settings dictionary.
             pixel_model_positions (np.array): (N, 2) array of pixel positions in model space.
             coord_system (CoordinateSystem): The coordinate system converter.
+            lidar_pose (dict, optional): Dictionary containing LiDAR's pose {'x', 'y', 'theta_deg'}. Defaults to None.
         """
         # Settings
         self.view_width = settings.get('view_width', 800)
@@ -22,12 +23,15 @@ class Renderer:
         self.min_brightness_falloff = settings.get('min_brightness_falloff', 0.3)
         self.debug_min_bird_size_px = 6.0
 
-        # --- ▼ここから追加・修正 ---
         # シミュレーター用の色設定を読み込む
         self.simulator_colors = settings.get('simulator_visuals', {})
-        # --- ▲ここまで追加・修正 ---
 
-        self.lidar_pose_data = lidar_pose_data # 姿勢データを保存
+        self.lidar_pose = lidar_pose # LiDARの姿勢情報を保存
+
+        # --- LiDARアイコンの事前生成 (効率化のため) ---
+        self.lidar_icon_surface = None
+        if self.lidar_pose:
+            self._create_lidar_icon()
 
         # --- 全体的な輝度設定 ---
         self.global_brightness = settings.get('global_brightness', 0.2)
@@ -53,6 +57,21 @@ class Renderer:
 
         # Calculated colors from the last frame, can be fetched for real-time output
         self.final_pixel_colors = np.zeros((self.num_pixels, 3), dtype=int)
+
+    def _create_lidar_icon(self):
+        """LiDARを表す三角形のアイコンを事前に描画しておく"""
+        icon_size = 15 # ピクセル単位
+        self.lidar_icon_surface = pygame.Surface((icon_size * 2, icon_size * 2), pygame.SRCALPHA)
+        
+        # 三角形の頂点
+        points = [
+            (icon_size, 0),                           # 頂点 (前)
+            (icon_size * 1.8, icon_size * 2),         # 右下
+            (icon_size * 0.2, icon_size * 2)          # 左下
+        ]
+        
+        pygame.draw.polygon(self.lidar_icon_surface, (255, 0, 0, 200), points) # 赤い半透明の三角形
+        pygame.draw.polygon(self.lidar_icon_surface, (255, 255, 255), points, 1) # 白い枠線
 
     def _create_static_backgrounds(self):
         """Creates the non-changing background elements for both views."""
@@ -194,6 +213,20 @@ class Renderer:
 
         # 2. Draw the Debug View (Using Simulator Colors)
         self.debug_surface.blit(self.static_debug_bg, (0, 0))
+
+        # --- LiDARアイコンの描画 (新規追加) ---
+        if self.lidar_icon_surface and self.lidar_pose:
+            # 元のサーフェスを回転
+            rotated_icon = pygame.transform.rotate(self.lidar_icon_surface, -self.lidar_pose['theta_deg'])
+            
+            # ワールド座標をビュー座標に変換
+            pos_px = self.coord_system.model_to_view(np.array([self.lidar_pose['x'], self.lidar_pose['y']]))
+            
+            # アイコンの中心を合わせるためのオフセット計算
+            icon_rect = rotated_icon.get_rect(center=pos_px)
+            
+            self.debug_surface.blit(rotated_icon, icon_rect.topleft)
+
         for bird in world.birds:
             # --- ▼ここから修正 ▼ ---
             # シミュレーター用の色を取得。なければ物理色をフォールバックとして使用。
@@ -208,7 +241,20 @@ class Renderer:
             # --- ▲ここまで修正 ▲ ---
 
         for human in world.humans:
-            pygame.draw.circle(self.debug_surface, (255, 255, 255), self.coord_system.model_to_view(human.position), 10)
+            pos_px = self.coord_system.model_to_view(human.position)
+            pygame.draw.circle(self.debug_surface, (255, 255, 255), pos_px, 10)
+
+            # --- 人間の詳細情報を描画 ---
+            info_text = (
+                f"Pos: ({human.position[0]:.2f}, {human.position[1]:.2f}) | "
+                f"Size: {human.size:.2f} | "
+                f"Vel: {np.linalg.norm(human.velocity):.2f} | "
+                f"SizeΔ: {human.size_change:.2f}"
+            )
+            text_surface = self.font.render(info_text, True, (255, 255, 255))
+            # テキストを円の少し下に表示
+            text_rect = text_surface.get_rect(center=(pos_px[0], pos_px[1] + 20))
+            self.debug_surface.blit(text_surface, text_rect)
 
         # 3. Draw the Artistic View (Translating physical brightness to simulator colors)
         self.art_surface.blit(self.static_art_bg, (0, 0))
