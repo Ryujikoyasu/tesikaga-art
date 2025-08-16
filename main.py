@@ -25,8 +25,8 @@ try:
     CHIRP_PROBABILITY_PER_FRAME = AI_TUNING.get('chirp_probability_per_frame', 0.001)
     
     NUM_PIXELS = NUM_LEDS // 3
-    MODEL_DIAMETER = settings['model_diameter']
-    MODEL_RADIUS = MODEL_DIAMETER / 2.0
+    MODEL_WIDTH = settings['model_width']
+    MODEL_HEIGHT = settings['model_height']
     VIEW_WIDTH = settings.get('view_width', 800)
     SCREEN_WIDTH, SCREEN_HEIGHT = VIEW_WIDTH * 2, settings.get('view_height', 800)
     
@@ -44,7 +44,7 @@ def main():
     clock = pygame.time.Clock()
 
     # --- Coordinate System ---    
-    coord_system = CoordinateSystem(view_size=(VIEW_WIDTH, SCREEN_HEIGHT), model_radius=MODEL_RADIUS)
+    coord_system = CoordinateSystem(view_size=(VIEW_WIDTH, SCREEN_HEIGHT), model_size=(MODEL_WIDTH, MODEL_HEIGHT))
 
     # --- Data and Object Initialization ---
     try:
@@ -59,7 +59,7 @@ def main():
     input_source = MouseInputSource(coord_system.view_to_model)
 
     bird_objects = [Bird(bird_id, BIRD_PARAMS[bird_id], CHIRP_PROBABILITY_PER_FRAME) for bird_id in BIRDS_TO_SIMULATE if bird_id in BIRD_PARAMS]
-    world = World(MODEL_RADIUS, bird_objects)
+    world = World(model_size=(MODEL_WIDTH, MODEL_HEIGHT), birds=bird_objects)
     
     # The renderer now handles all drawing surfaces and logic
     renderer = Renderer(settings, pixel_model_positions, coord_system)

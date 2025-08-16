@@ -15,20 +15,21 @@ baud_rate: 921600
 view_width: 800
 view_height: 800
 
-# The diameter of the pond area in the physical model (in meters)
-model_diameter: 5.0
+# The width and height of the pond area in the physical model (in meters)
+model_width: 6.3
+model_height: 5.3
 
 # --- Hardware & Layout ---
 # Name of the LED position file in assets/data/
-led_layout_file: "led_positions_2_segments.csv"
+led_layout_file: "led_positions_4_segments.csv"
 # Total number of physical LEDs in the full installation
-num_leds: 600
+num_leds: 1200
 
 # --- Hardware Test Mode ---
 # When true, main_real.py will only use a subset of LEDs for testing.
 # This allows you to test with a shorter strip without changing the main num_leds.
 enable_test_mode: false
-test_strip_led_count: 600 # Number of LEDs on your physical test strip
+test_strip_led_count: 1200 # Number of LEDs on your physical test strip
 
 # ===================================================================
 # === INPUT SOURCE CONFIGURATION

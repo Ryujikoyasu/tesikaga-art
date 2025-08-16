@@ -75,17 +75,25 @@ class Renderer:
 
     def _create_static_backgrounds(self):
         """Creates the non-changing background elements for both views."""
+        # Define the bounding rectangle for the ellipse in the view space
+        view_rect = pygame.Rect(
+            self.coord_system.view_center[0] - self.coord_system.view_radius_x,
+            self.coord_system.view_center[1] - self.coord_system.view_radius_y,
+            self.coord_system.view_radius_x * 2,
+            self.coord_system.view_radius_y * 2
+        )
+
         # Debug view background
         self.static_debug_bg = pygame.Surface((self.view_width, self.view_height))
         self.static_debug_bg.fill((25, 28, 35))
-        pygame.draw.circle(self.static_debug_bg, (20, 40, 80), self.coord_system.view_center, self.coord_system.view_radius)
+        pygame.draw.ellipse(self.static_debug_bg, (20, 40, 80), view_rect)
         for pos_px in self.pixel_view_positions:
             pygame.draw.circle(self.static_debug_bg, (50, 50, 50), pos_px, 2)
 
         # Artistic view background
         self.static_art_bg = pygame.Surface((self.view_width, self.view_height))
         self.static_art_bg.fill((5, 8, 15))
-        pygame.draw.circle(self.static_art_bg, (20, 40, 80), self.coord_system.view_center, self.coord_system.view_radius)
+        pygame.draw.ellipse(self.static_art_bg, (20, 40, 80), view_rect)
 
     def calculate_pixel_colors(self, world):
         """

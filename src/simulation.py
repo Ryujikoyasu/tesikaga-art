@@ -7,8 +7,10 @@ class World:
     Manages all simulation objects, tracks them over time, and enforces world rules.
     This is the "environment" or "stage" where the actors live.
     """
-    def __init__(self, model_radius, birds):
-        self.model_radius = model_radius
+    def __init__(self, model_size, birds):
+        self.model_width, self.model_height = model_size
+        self.model_radius_x = self.model_width / 2.0
+        self.model_radius_y = self.model_height / 2.0
         self.birds = birds
         self.humans = []
         
@@ -74,10 +76,13 @@ class World:
         self.previous_humans = current_humans_by_id
 
     def _get_random_position(self):
-        """Returns a random position within the world's radius."""
-        r = self.model_radius * np.sqrt(random.random())
+        """Returns a random position within the world's elliptical boundary."""
+        # Generate a random point within a unit circle, then scale to the ellipse
+        r = np.sqrt(random.random())
         theta = random.random() * 2 * np.pi
-        return np.array([r * np.cos(theta), r * np.sin(theta)])
+        x = r * np.cos(theta) * self.model_radius_x
+        y = r * np.sin(theta) * self.model_radius_y
+        return np.array([x, y])
 
     def _apply_physics_and_constraints(self, bird):
         """Applies world rules (boundaries, physics) to a single bird."""
@@ -85,19 +90,34 @@ class World:
         if bird.state == "CHIRPING":
             return
 
-        # 1. Apply soft boundary repulsion
-        dist_from_center = np.linalg.norm(bird.position)
-        if dist_from_center > self.model_radius * 0.8:
-            repulsion_strength = (dist_from_center - self.model_radius * 0.8) / (self.model_radius * 0.2)
-            bird.velocity += (-bird.position / dist_from_center) * repulsion_strength * 0.01
+        # 1. Apply soft boundary repulsion for an inner ellipse
+        soft_boundary_scale = 0.8
+        rx_soft = self.model_radius_x * soft_boundary_scale
+        ry_soft = self.model_radius_y * soft_boundary_scale
         
+        # Check if the bird is outside the soft boundary ellipse
+        # Add a small epsilon to prevent division by zero if radii are zero
+        check_soft = (bird.position[0] / (rx_soft + 1e-6))**2 + (bird.position[1] / (ry_soft + 1e-6))**2
+        
+        if check_soft > 1.0:
+            # The repulsion force should be normal to the ellipse surface
+            grad = np.array([2 * bird.position[0] / (rx_soft**2 + 1e-6), 
+                             2 * bird.position[1] / (ry_soft**2 + 1e-6)])
+            repulsion_direction = -grad / (np.linalg.norm(grad) + 1e-6) # Normalize, avoid division by zero
+            
+            # Strength increases the further the bird is outside
+            repulsion_strength = (np.sqrt(check_soft) - 1.0) * 0.5 # Adjust the multiplier for desired strength
+            bird.velocity += repulsion_direction * repulsion_strength * 0.01
+
         # 2. Update position based on velocity
         bird.position += bird.velocity
 
-        # 3. Apply hard boundary enforcement
-        dist_from_center_after_move = np.linalg.norm(bird.position)
-        if dist_from_center_after_move > self.model_radius:
-            bird.position = bird.position / dist_from_center_after_move * self.model_radius
+        # 3. Apply hard boundary enforcement for the outer ellipse
+        check_hard = (bird.position[0] / (self.model_radius_x + 1e-6))**2 + (bird.position[1] / (self.model_radius_y + 1e-6))**2
+        if check_hard > 1.0:
+            # Bring the bird back to the boundary along the vector from the center
+            scale_factor = np.sqrt(check_hard)
+            bird.position = bird.position / scale_factor
             bird.velocity *= -0.5 # Lose energy on impact
 
     def update(self, pixel_model_positions):

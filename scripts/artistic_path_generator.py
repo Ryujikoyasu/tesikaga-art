@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle
+from matplotlib.patches import Ellipse, Circle
 import time
 import csv
 
@@ -9,12 +9,13 @@ class InteractivePathEditor:
     def __init__(self, num_segments=3):
         # --- Core Parameters ---
         self.num_segments = num_segments
-        # User must place N+1 points to define N segments
         self.num_total_anchors = self.num_segments + 1
 
         # --- Constants ---
-        self.POND_DIAMETER = 5.0
-        self.POND_RADIUS = self.POND_DIAMETER / 2.0
+        self.POND_WIDTH = 6.3
+        self.POND_HEIGHT = 5.3
+        self.POND_RADIUS_X = self.POND_WIDTH / 2.0
+        self.POND_RADIUS_Y = self.POND_HEIGHT / 2.0
         self.SEGMENT_LENGTH = 5.0
         self.LEDS_PER_METER = 60
         self.TOTAL_LENGTH = self.num_segments * self.SEGMENT_LENGTH
@@ -52,9 +53,10 @@ class InteractivePathEditor:
 
     def setup_plot(self):
         self.ax.set_aspect('equal', adjustable='box')
-        self.ax.set_xlim(-self.POND_RADIUS - 1, self.POND_RADIUS + 1)
-        self.ax.set_ylim(-self.POND_RADIUS - 1, self.POND_RADIUS + 1)
-        self.pond = Circle(self.pond_center, self.POND_RADIUS, facecolor='lightblue', edgecolor='blue', alpha=0.5, zorder=0)
+        self.ax.set_xlim(-self.POND_RADIUS_X - 1, self.POND_RADIUS_X + 1)
+        self.ax.set_ylim(-self.POND_RADIUS_Y - 1, self.POND_RADIUS_Y + 1)
+        self.pond = Ellipse(self.pond_center, self.POND_WIDTH, self.POND_HEIGHT, 
+                              facecolor='lightblue', edgecolor='blue', alpha=0.5, zorder=0)
         self.ax.add_patch(self.pond)
         self.line_artist, = self.ax.plot([], [], color='purple', linewidth=2.5, zorder=1)
         self.anchor_artist = self.ax.scatter([], [], color='black', s=120, zorder=5)
@@ -152,25 +154,39 @@ class InteractivePathEditor:
         if self.state == "PLACING_ANCHORS":
             if self.placed_anchor_count < self.num_total_anchors:
                 pos = np.array([event.xdata, event.ydata])
-                
-                # The last anchor point (index N) is not snapped to the edge.
                 is_last_anchor = (self.placed_anchor_count == self.num_segments)
 
                 if not is_last_anchor:
-                    # Snap the clicked point to the edge of the pond
                     vec = pos - self.pond_center
-                    norm_vec = np.linalg.norm(vec)
-                    if norm_vec > 1e-6:
-                        self.anchor_positions[self.placed_anchor_count] = self.pond_center + (vec / norm_vec) * self.POND_RADIUS
-                    else: # Default to a point on top if center is clicked
-                        self.anchor_positions[self.placed_anchor_count] = self.pond_center + np.array([0, self.POND_RADIUS])
+                    if np.linalg.norm(vec) < 1e-6:
+                        self.anchor_positions[self.placed_anchor_count] = self.pond_center + np.array([self.POND_RADIUS_X, 0])
+                    else:
+                        # Snap to ellipse boundary by finding the intersection of the line from center to point
+                        # with the ellipse.
+                        angle = np.arctan2(vec[1], vec[0])
+                        a = self.POND_RADIUS_X
+                        b = self.POND_RADIUS_Y
+                        
+                        # Parametric equation for ellipse: x = a*cos(t), y = b*sin(t)
+                        # Relation between angle from center (theta) and parameter t:
+                        # tan(theta) = (b*sin(t)) / (a*cos(t)) => tan(t) = (a/b)*tan(theta)
+                        if abs(np.cos(angle)) < 1e-9: # Vertical line
+                            t = np.pi / 2 if vec[1] > 0 else -np.pi / 2
+                        else:
+                            t = np.arctan((a/b) * np.tan(angle))
+                        
+                        # We need to be in the correct quadrant
+                        if np.cos(angle) < 0: t += np.pi
+
+                        x_on_ellipse = a * np.cos(t)
+                        y_on_ellipse = b * np.sin(t)
+
+                        self.anchor_positions[self.placed_anchor_count] = self.pond_center + np.array([x_on_ellipse, y_on_ellipse])
                 else:
-                    # For the last anchor, just use the clicked position
                     self.anchor_positions[self.placed_anchor_count] = pos
                 
                 self.placed_anchor_count += 1
 
-            # If all N+1 anchors are placed, start the editing phase
             if self.placed_anchor_count == self.num_total_anchors:
                 print("All anchors placed. Entering editing mode.")
                 self.state = "EDITING_PATH"
@@ -189,14 +205,15 @@ class InteractivePathEditor:
         if not self.is_dragging or not event.inaxes: return
         
         pos = np.array([event.xdata, event.ydata])
-        brush_radius = self.pull_radius_factor * self.POND_RADIUS
+        avg_radius = (self.POND_RADIUS_X + self.POND_RADIUS_Y) / 2.0
+        brush_radius = self.pull_radius_factor * avg_radius
         self.brush_indicator.set_center((pos[0], pos[1]))
         self.brush_indicator.set_radius(brush_radius)
         
         displacement = pos - self.drag_info['pos']
         distances = np.linalg.norm(self.path_vertices - pos, axis=1)
         
-        sigma = self.POND_RADIUS * self.pull_radius_factor
+        sigma = avg_radius * self.pull_radius_factor
         pull_strength = np.exp(-(distances**2) / (2 * sigma**2))
         
         if self.anchor_indices:
@@ -211,13 +228,16 @@ class InteractivePathEditor:
             self.is_dragging = False
             self.brush_indicator.set_visible(False)
             
-            distances_from_center = np.linalg.norm(self.path_vertices - self.pond_center, axis=1)
-            outside_mask = distances_from_center > self.POND_RADIUS
-            
+            # Check for points outside the ellipse
+            relative_coords = self.path_vertices - self.pond_center
+            # Add epsilon to avoid division by zero
+            check = (relative_coords[:, 0] / (self.POND_RADIUS_X + 1e-9))**2 + (relative_coords[:, 1] / (self.POND_RADIUS_Y + 1e-9))**2
+            outside_mask = check > 1.0
+
             if np.any(outside_mask):
-                vecs_to_center = self.pond_center - self.path_vertices[outside_mask]
-                self.path_vertices[outside_mask] += vecs_to_center * \
-                    (1 - self.POND_RADIUS / distances_from_center[outside_mask])[:, np.newaxis]
+                # Scale points back onto the ellipse boundary
+                scale_factors = np.sqrt(check[outside_mask])
+                self.path_vertices[outside_mask] = self.pond_center + relative_coords[outside_mask] / scale_factors[:, np.newaxis]
             
             self.update_display()
 
@@ -309,7 +329,7 @@ class InteractivePathEditor:
 if __name__ == "__main__":
     # --- User Configuration ---
     # Set the desired number of line segments.
-    NUM_SEGMENTS = 2  # <-- CHANGE THIS VALUE (e.g., 3, 4, 5, etc.)
+    NUM_SEGMENTS = 4  # <-- CHANGE THIS VALUE (e.g., 3, 4, 5, etc.)
     # --------------------------
 
     print("--- Interactive Path Builder ---")

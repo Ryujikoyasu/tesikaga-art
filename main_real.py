@@ -24,8 +24,8 @@ try:
     LED_FILE_NAME = settings['led_layout_file']
     LED_FILE_PATH = os.path.join(PROJECT_ROOT, "assets", "data", LED_FILE_NAME)
     NUM_LEDS = settings['num_leds']
-    MODEL_DIAMETER = settings['model_diameter']
-    MODEL_RADIUS = MODEL_DIAMETER / 2.0
+    MODEL_WIDTH = settings['model_width']
+    MODEL_HEIGHT = settings['model_height']
 
     # Test mode settings
     ENABLE_TEST_MODE = settings.get('enable_test_mode', False)
@@ -70,7 +70,7 @@ def main_realtime():
     serial_thread.start()
 
     # --- Coordinate System ---
-    coord_system = CoordinateSystem(view_size=(VIEW_WIDTH, VIEW_HEIGHT), model_radius=MODEL_RADIUS)
+    coord_system = CoordinateSystem(view_size=(VIEW_WIDTH, VIEW_HEIGHT), model_size=(MODEL_WIDTH, MODEL_HEIGHT))
 
     # --- Data and Object Initialization ---
     try:
@@ -91,7 +91,7 @@ def main_realtime():
         return
 
     bird_objects = [Bird(bird_id, BIRD_PARAMS[bird_id], CHIRP_PROBABILITY_PER_FRAME) for bird_id in BIRDS_TO_SIMULATE if bird_id in BIRD_PARAMS]
-    world = World(MODEL_RADIUS, bird_objects)
+    world = World(model_size=(MODEL_WIDTH, MODEL_HEIGHT), birds=bird_objects)
     
     # --- Load LiDAR pose data ---
     LIDAR_POSE_WORLD = None
