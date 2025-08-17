@@ -42,6 +42,18 @@ udp_settings:
   host: "127.0.0.1"
   port: 9999
 
+# --- Automatic Human Movement (for testing without a real input) ---
+# If enabled, this will override the 'input_source_type' and generate
+# a fake human moving in a pattern.
+auto_human_movement:
+  enabled: true
+  # Pattern type: "circle" or "patrol" (patrol moves between two points)
+  pattern: "circle" 
+  speed: 0.2 # meters per second
+  radius: 2.4 # for circle pattern
+  size: 15.0 # size of the auto-human
+
+
  # LiDARの姿勢情報ファイルへのパス (プロジェクトルートからの相対パス)
 transform_matrix_path: "config/calibration_result.yaml"
 

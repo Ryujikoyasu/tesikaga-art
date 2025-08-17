@@ -3,6 +3,7 @@ import pygame
 import socket
 import threading
 import numpy as np
+import time
 
 # Humanクラスのインポートは不要になる
 # from .objects import Human 
@@ -72,3 +73,27 @@ class UdpInputSource(InputSource):
         self.sock.close()
         self.thread.join()
         print("UDP Input source shut down.")
+
+# -------------------------------------------------------------
+# 4. Automatic (for testing)
+# -------------------------------------------------------------
+class AutomaticInputSource(InputSource):
+    """Generates a fake human moving in a predefined pattern."""
+    def __init__(self, config):
+        self.config = config
+        self.start_time = time.time()
+        print("Using AutomaticInputSource for human movement.")
+
+    def get_detected_objects(self) -> np.ndarray:
+        elapsed_time = time.time() - self.start_time
+        speed = self.config.get('speed', 1.0)
+        radius = self.config.get('radius', 2.0)
+        size = self.config.get('size', 15.0)
+        
+        # Calculate position based on circular pattern
+        angle = elapsed_time * speed
+        x = radius * np.cos(angle)
+        y = radius * np.sin(angle)
+        
+        # Return as a single detected object
+        return np.array([[x, y, size]])

@@ -7,7 +7,7 @@ from config.config import BIRD_PARAMS
 from src.objects import Bird
 from src.simulation import World
 from src.renderer import Renderer
-from src.input_source import MouseInputSource, UdpInputSource
+from src.input_source import MouseInputSource, UdpInputSource, AutomaticInputSource
 from src.serial_handler import SerialWriterThread
 from src.coordinates import CoordinateSystem
 
@@ -49,6 +49,7 @@ try:
     # Input Source
     INPUT_SOURCE_TYPE = settings.get('input_source_type', 'mouse')
     UDP_SETTINGS = settings.get('udp_settings', {})
+    AUTO_HUMAN_SETTINGS = settings.get('auto_human_movement', {'enabled': False})
     
     print("Loaded runtime settings from 'settings.yaml'")
     if ENABLE_TEST_MODE:
@@ -82,12 +83,16 @@ def main_realtime():
         serial_thread.close()
         return
     
-    if INPUT_SOURCE_TYPE == 'udp':
+    # --- Input Source Selection ---
+    if AUTO_HUMAN_SETTINGS.get('enabled', False):
+        input_source = AutomaticInputSource(AUTO_HUMAN_SETTINGS)
+    elif INPUT_SOURCE_TYPE == 'udp':
         input_source = UdpInputSource(host=UDP_SETTINGS.get('host', '0.0.0.0'), port=UDP_SETTINGS.get('port', 9999))
     elif INPUT_SOURCE_TYPE == 'mouse':
         input_source = MouseInputSource(coord_system.view_to_model)
     else:
         print(f"FATAL: Unknown input_source_type '{INPUT_SOURCE_TYPE}' in settings.yaml. Exiting.")
+        serial_thread.close()
         return
 
     bird_objects = [Bird(bird_id, BIRD_PARAMS[bird_id], CHIRP_PROBABILITY_PER_FRAME) for bird_id in BIRDS_TO_SIMULATE if bird_id in BIRD_PARAMS]
