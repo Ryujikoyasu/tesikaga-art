@@ -126,6 +126,7 @@ def main_realtime():
     print("Starting real-time simulation and LED output...")
     running = True
     while running:
+        pygame.event.pump()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False

@@ -61,7 +61,7 @@ transform_matrix_path: "config/calibration_result.yaml"
 # --- AI & Visual Tuning ---
 # Fine-tuning parameters for bird behavior and simulation visuals.
 ai_tuning:
-  chirp_probability_per_frame: 0.01
+  chirp_probability_per_frame: 0.005
   min_brightness_falloff: 0.4 # 40% brightness guarantee for falloff
 
 # --- Simulation Cast ---
@@ -77,6 +77,15 @@ birds_to_simulate:
   - kumagera
   - nogoma
   - benimashiko
+  - ojirowasi
+  - shimafukuro
+  - tancho
+  - oohakucho
+  - ooluri
+  - kumagera
+  - nogoma
+  - benimashiko
+
 # --- ★鳥の全体的な輝度設定 (0.0から1.0) ---
 global_brightness: 0.8
 
