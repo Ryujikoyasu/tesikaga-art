@@ -77,10 +77,10 @@ class Renderer:
         """Creates the non-changing background elements for both views."""
         # Define the bounding rectangle for the ellipse in the view space
         view_rect = pygame.Rect(
-            self.coord_system.view_center[0] - self.coord_system.view_radius_x,
-            self.coord_system.view_center[1] - self.coord_system.view_radius_y,
-            self.coord_system.view_radius_x * 2,
-            self.coord_system.view_radius_y * 2
+            self.coord_system.view_center[0] - self.coord_system.actual_view_radius_x,
+            self.coord_system.view_center[1] - self.coord_system.actual_view_radius_y,
+            self.coord_system.actual_view_radius_x * 2,
+            self.coord_system.actual_view_radius_y * 2
         )
 
         # Debug view background
@@ -184,7 +184,7 @@ class Renderer:
 
     def _draw_lidar_pose(self, surface):
         """デバッグ画面にLiDARの姿勢を描画する"""
-        if not self.lidar_pose_data:
+        if not self.lidar_pose:
             return
 
         # --- 1. LiDARのローカル座標で形状を定義 (前方がX軸プラス方向) ---
@@ -198,8 +198,8 @@ class Renderer:
         ])
 
         # --- 2. 姿勢データを使って、形状をワールド座標に変換 ---
-        pos = np.array(self.lidar_pose_data['position_xy'])
-        theta_rad = np.deg2rad(self.lidar_pose_data['rotation_z_deg'])
+        pos = np.array(self.lidar_pose['position_xy'])
+        theta_rad = np.deg2rad(self.lidar_pose['rotation_z_deg'])
         c, s = np.cos(theta_rad), np.sin(theta_rad)
         rotation_matrix = np.array([[c, -s], [s, c]])
 
@@ -211,6 +211,11 @@ class Renderer:
         # --- 4. 描画 ---
         pygame.draw.polygon(surface, (255, 255, 0), shape_view) # 黄色い三角形で描画
         pygame.draw.polygon(surface, (0, 0, 0), shape_view, 2) # 黒い縁取り
+        
+        # デバッグ情報を追加：LiDARの位置を表示
+        debug_text = f"LiDAR: ({pos[0]:.2f}, {pos[1]:.2f}), θ={self.lidar_pose['rotation_z_deg']:.1f}°"
+        debug_surface = self.font.render(debug_text, True, (255, 255, 0))
+        surface.blit(debug_surface, (10, 10))
 
     def render(self, screen, world):
         """
@@ -222,18 +227,8 @@ class Renderer:
         # 2. Draw the Debug View (Using Simulator Colors)
         self.debug_surface.blit(self.static_debug_bg, (0, 0))
 
-        # --- LiDARアイコンの描画 (新規追加) ---
-        if self.lidar_icon_surface and self.lidar_pose:
-            # 元のサーフェスを回転
-            rotated_icon = pygame.transform.rotate(self.lidar_icon_surface, -self.lidar_pose['theta_deg'])
-            
-            # ワールド座標をビュー座標に変換
-            pos_px = self.coord_system.model_to_view(np.array([self.lidar_pose['x'], self.lidar_pose['y']]))
-            
-            # アイコンの中心を合わせるためのオフセット計算
-            icon_rect = rotated_icon.get_rect(center=pos_px)
-            
-            self.debug_surface.blit(rotated_icon, icon_rect.topleft)
+        # --- LiDAR姿勢の描画 (三角形として) ---
+        self._draw_lidar_pose(self.debug_surface)
 
         for bird in world.birds:
             # --- ▼ここから修正 ▼ ---

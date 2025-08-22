@@ -106,11 +106,32 @@ def main_realtime():
             CALIBRATION_FILE_PATH = os.path.join(PROJECT_ROOT, calibration_path_setting)
             with open(CALIBRATION_FILE_PATH, 'r') as f:
                 calibration_data = yaml.safe_load(f)
-            LIDAR_POSE_WORLD = calibration_data.get('lidar_pose_world', None)
-            if LIDAR_POSE_WORLD:
-                print(f"Loaded LiDAR pose from '{CALIBRATION_FILE_PATH}'.")
+            
+            # Try to get lidar_pose directly first
+            if 'lidar_pose' in calibration_data:
+                LIDAR_POSE_WORLD = calibration_data['lidar_pose']
+                print(f"Loaded LiDAR pose directly from '{CALIBRATION_FILE_PATH}'.")
+            # If not available, try to extract from transformation_matrix
+            elif 'transformation_matrix' in calibration_data:
+                transform_matrix = np.array(calibration_data['transformation_matrix'])
+                if transform_matrix.shape == (2, 3):
+                    # Extract position from the last column
+                    position_xy = [float(transform_matrix[0, 2]), float(transform_matrix[1, 2])]
+                    
+                    # Extract rotation from the rotation part of the matrix
+                    rotation_matrix = transform_matrix[:, :2]
+                    theta_rad = np.arctan2(rotation_matrix[1, 0], rotation_matrix[0, 0])
+                    theta_deg = np.degrees(theta_rad)
+                    
+                    LIDAR_POSE_WORLD = {
+                        'position_xy': position_xy,
+                        'rotation_z_deg': float(theta_deg)
+                    }
+                    print(f"Extracted LiDAR pose from transformation_matrix in '{CALIBRATION_FILE_PATH}'.")
+                else:
+                    print(f"WARNING: transformation_matrix has unexpected shape {transform_matrix.shape} in '{CALIBRATION_FILE_PATH}'.")
             else:
-                print(f"WARNING: 'lidar_pose_world' key not found in '{CALIBRATION_FILE_PATH}'.")
+                print(f"WARNING: Neither 'lidar_pose' nor 'transformation_matrix' found in '{CALIBRATION_FILE_PATH}'.")
 
         except FileNotFoundError:
             print(f"WARNING: Calibration file not found at '{CALIBRATION_FILE_PATH}'. LiDAR pose will not be drawn.")
