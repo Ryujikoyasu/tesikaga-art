@@ -7,7 +7,7 @@
 # Mac: /dev/tty.usbmodemXXXX or /dev/tty.usbserial-XXXX
 # Linux: /dev/ttyACM0 or /dev/ttyUSB0
 # Windows: COM3
-serial_port: "/dev/tty.usbmodem1101"
+serial_port: "/dev/ttyACM1"
 baud_rate: 921600
 
 # --- Visual & Simulation Parameters ---
@@ -16,8 +16,8 @@ view_width: 800
 view_height: 800
 
 # The width and height of the pond area in the physical model (in meters)
-model_width: 6.3
-model_height: 5.3
+model_width: 5.3   # 池の幅（短辺）
+model_height: 6.3  # 池の高さ（長辺）
 
 # --- Hardware & Layout ---
 # Name of the LED position file in assets/data/
@@ -35,7 +35,7 @@ test_strip_led_count: 1200 # Number of LEDs on your physical test strip
 # === INPUT SOURCE CONFIGURATION
 # ===================================================================
 # "mouse" または "udp" を指定
-input_source_type: "mouse" 
+input_source_type: "udp" 
 
 # UDPを使用する場合の設定
 udp_settings:
@@ -46,7 +46,7 @@ udp_settings:
 # If enabled, this will override the 'input_source_type' and generate
 # a fake human moving in a pattern.
 auto_human_movement:
-  enabled: true
+  enabled: false
   # Pattern type: "circle" or "patrol" (patrol moves between two points)
   pattern: "circle" 
   speed: 0.2 # meters per second
@@ -85,6 +85,8 @@ birds_to_simulate:
   - kumagera
   - nogoma
   - benimashiko
+  
+
 
 # --- ★鳥の全体的な輝度設定 (0.0から1.0) ---
 global_brightness: 0.8

@@ -12,8 +12,8 @@ class InteractivePathEditor:
         self.num_total_anchors = self.num_segments + 1
 
         # --- Constants ---
-        self.POND_WIDTH = 6.3
-        self.POND_HEIGHT = 5.3
+        self.POND_WIDTH = 5.3   # 実際の池の幅（短辺）
+        self.POND_HEIGHT = 6.3  # 実際の池の高さ（長辺）
         self.POND_RADIUS_X = self.POND_WIDTH / 2.0
         self.POND_RADIUS_Y = self.POND_HEIGHT / 2.0
         self.SEGMENT_LENGTH = 5.0
